@@ -47,6 +47,8 @@ extension StructuredText {
         UnorderedList(intent: intent, content: content)
       case .codeBlock(let languageHint) where languageHint?.lowercased() == "math":
         MathCodeBlock(content)
+      case .codeBlock(let languageHint) where languageHint?.lowercased() == "mermaid":
+        MermaidCodeBlock(content)
       case .codeBlock(let languageHint):
         CodeBlock(content, languageHint: languageHint)
       case .blockQuote:
