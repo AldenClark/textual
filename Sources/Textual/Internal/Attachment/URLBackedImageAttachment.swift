@@ -60,9 +60,12 @@ private struct URLBackedImageAttachmentView: View {
   var body: some View {
     contentView(for: resolvedURL ?? url)
       .contentShape(Rectangle())
-      .onTapGesture {
-        tapAction?(url)
-      }
+      .gesture(
+        TapGesture().onEnded {
+          tapAction?(url)
+        },
+        including: .gesture
+      )
       .overlay(alignment: .bottomTrailing) {
         if isSupportedAnimatedAsset, !isAnimating {
           Button(action: requestPlayback) {

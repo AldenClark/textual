@@ -12,7 +12,7 @@ import SwiftUI
 // remain independent.
 
 struct TextSelectionInteraction: ViewModifier {
-  #if TEXTUAL_ENABLE_TEXT_SELECTION
+  #if TEXTUAL_ENABLE_TEXT_SELECTION && !canImport(UIKit)
     @Environment(\.textSelection) private var textSelection
     @Environment(TextSelectionCoordinator.self) private var coordinator: TextSelectionCoordinator?
 
@@ -21,22 +21,28 @@ struct TextSelectionInteraction: ViewModifier {
 
   func body(content: Content) -> some View {
     #if TEXTUAL_ENABLE_TEXT_SELECTION
-      if textSelection.allowsSelection {
+      #if canImport(UIKit)
+        // Temporarily disable custom selection interaction on iOS-family platforms.
+        // This avoids SwiftUI runtime warnings caused by per-frame layout sync loops.
         content
-          .overlayTextLayoutCollection { layoutCollection in
-            Color.clear
-              .onChange(of: AnyTextLayoutCollection(layoutCollection), initial: true) { _, newValue in
-                // Avoid synchronously mutating observable selection state in the onChange action.
-                Task { @MainActor in
-                  model.setCoordinator(coordinator)
-                  model.setLayoutCollection(newValue)
+      #else
+        if textSelection.allowsSelection {
+          content
+            .overlayTextLayoutCollection { layoutCollection in
+              Color.clear
+                .onChange(of: AnyTextLayoutCollection(layoutCollection), initial: true) { _, newValue in
+                  // Avoid synchronously mutating observable selection state in the onChange action.
+                  Task { @MainActor in
+                    model.setCoordinator(coordinator)
+                    model.setLayoutCollection(newValue)
+                  }
                 }
-              }
-          }
-          .modifier(PlatformTextSelectionInteraction(model: model))
-      } else {
-        content
-      }
+            }
+            .modifier(PlatformTextSelectionInteraction(model: model))
+        } else {
+          content
+        }
+      #endif
     #else
       content
     #endif
