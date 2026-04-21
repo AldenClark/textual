@@ -2,20 +2,26 @@ import SwiftUI
 
 struct StopImagePlaybackOnScrollGesture: ViewModifier {
   @Environment(\.imageAttachmentPlaybackController) private var playbackController
-  @State private var hasStoppedForCurrentDrag = false
+  @State private var lastObservedOrigin: CGPoint?
+  private let movementThreshold: CGFloat = 0.5
 
   func body(content: Content) -> some View {
-    content.simultaneousGesture(
-      DragGesture(minimumDistance: 2)
-        .onChanged { _ in
-          guard !hasStoppedForCurrentDrag else { return }
-          hasStoppedForCurrentDrag = true
-          playbackController.stop()
+    content
+      .onGeometryChange(for: CGPoint.self, of: \.globalOrigin) { origin in
+        if let lastObservedOrigin {
+          let deltaX = abs(origin.x - lastObservedOrigin.x)
+          let deltaY = abs(origin.y - lastObservedOrigin.y)
+          if deltaX > movementThreshold || deltaY > movementThreshold {
+            playbackController.stop()
+          }
         }
-        .onEnded { _ in
-          hasStoppedForCurrentDrag = false
-        },
-      including: .all
-    )
+        self.lastObservedOrigin = origin
+      }
+  }
+}
+
+private extension GeometryProxy {
+  var globalOrigin: CGPoint {
+    frame(in: .global).origin
   }
 }
