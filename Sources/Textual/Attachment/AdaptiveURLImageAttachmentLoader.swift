@@ -1,5 +1,7 @@
 import SwiftUI
 
+public typealias URLImageAttachmentSizeProvider = @Sendable (URL) async -> CGSize?
+
 /// Backend mode for URL-based image attachment rendering.
 public enum URLImageAttachmentBackend: String, CaseIterable, Sendable {
   /// Decodes image frames with Textual's built-in image pipeline.
@@ -17,14 +19,17 @@ public struct AdaptiveURLImageAttachmentLoader: AttachmentLoader {
   public typealias Attachment = AdaptiveImageAttachment
 
   private let baseURL: URL?
+  private let sizeProvider: URLImageAttachmentSizeProvider?
   public let backend: URLImageAttachmentBackend
 
   public init(
     relativeTo baseURL: URL? = nil,
-    backend: URLImageAttachmentBackend = .textualNative
+    backend: URLImageAttachmentBackend = .textualNative,
+    sizeProvider: URLImageAttachmentSizeProvider? = nil
   ) {
     self.baseURL = baseURL
     self.backend = backend
+    self.sizeProvider = sizeProvider
   }
 
   public func attachment(
@@ -39,7 +44,14 @@ public struct AdaptiveURLImageAttachmentLoader: AttachmentLoader {
       let image = try await ImageLoader.shared.image(for: imageURL)
       return .decoded(ImageAttachment(image: image, text: text))
     case .sdWebImage:
-      return .urlBacked(URLBackedImageAttachment(url: imageURL, text: text))
+      let intrinsicSize = await sizeProvider?(imageURL)
+      return .urlBacked(
+        URLBackedImageAttachment(
+          url: imageURL,
+          text: text,
+          intrinsicSize: intrinsicSize
+        )
+      )
     }
   }
 }
@@ -52,9 +64,10 @@ extension AttachmentLoader where Self == AdaptiveURLImageAttachmentLoader {
   ///   - backend: Rendering backend for resolved image URLs.
   public static func adaptiveImage(
     relativeTo baseURL: URL? = nil,
-    backend: URLImageAttachmentBackend = .textualNative
+    backend: URLImageAttachmentBackend = .textualNative,
+    sizeProvider: URLImageAttachmentSizeProvider? = nil
   ) -> Self {
-    .init(relativeTo: baseURL, backend: backend)
+    .init(relativeTo: baseURL, backend: backend, sizeProvider: sizeProvider)
   }
 }
 
