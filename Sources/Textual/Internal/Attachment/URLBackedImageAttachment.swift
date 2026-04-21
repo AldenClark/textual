@@ -108,7 +108,7 @@ private struct URLBackedImageAttachmentView: View {
         AnimatedImage(
           url: sourceURL,
           options: [.matchAnimatedImageClass],
-          isAnimating: $isPlaying
+          isAnimating: .constant(true)
         )
           .indicator(.activity)
           .customLoopCount(1)
@@ -116,7 +116,11 @@ private struct URLBackedImageAttachmentView: View {
           .scaledToFit()
           .id(playbackSessionID)
       } else {
-        WebImage(url: sourceURL) { image in
+        WebImage(
+          url: sourceURL,
+          options: [.decodeFirstFrameOnly],
+          isAnimating: .constant(false)
+        ) { image in
           image
             .resizable()
             .scaledToFit()
@@ -148,8 +152,10 @@ private struct URLBackedImageAttachmentView: View {
   }
 
   private func requestPlayback() {
+    if playbackController.activeAttachmentID == attachmentID {
+      playbackController.stop()
+    }
     playbackController.play(attachmentID)
-    startPlaybackOnce()
   }
 
   private func handlePlaybackState(activeAttachmentID: String?) {
