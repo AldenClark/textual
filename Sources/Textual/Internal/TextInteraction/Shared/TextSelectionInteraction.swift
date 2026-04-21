@@ -28,7 +28,8 @@ struct TextSelectionInteraction: ViewModifier {
             let layoutCollectionSnapshot = AnyTextLayoutCollection(layoutCollection)
             let taskKey = StableLayoutTaskKey(layoutCollectionSnapshot)
             Color.clear
-              .task(id: taskKey) {
+              .id(taskKey)
+              .task {
                 layoutSync.schedule(
                   taskKey: taskKey,
                   newValue: layoutCollectionSnapshot,
