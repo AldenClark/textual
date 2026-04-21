@@ -119,7 +119,7 @@ struct AttachmentView: View {
 
         positions.append(
           AttachmentPosition(
-            id: "\(lineIndex)-\(runIndex)-\(attachment.hashValue)",
+            id: "\(lineIndex)-\(runIndex)",
             attachment: attachment,
             bounds: run.typographicBounds.rect,
             opacity: opacity
