@@ -122,6 +122,7 @@ public struct StructuredText: View {
         .modifier(TextSelectionCoordination())
     }
     .coordinateSpace(.textContainer)
+    .modifier(StopImagePlaybackOnScrollGesture())
     .onChange(of: markup, initial: true) {
       markupDidChange(markup)
     }

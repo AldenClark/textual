@@ -118,6 +118,7 @@ public struct InlineText: View {
       }
     }
     .coordinateSpace(.textContainer)
+    .modifier(StopImagePlaybackOnScrollGesture())
     .onChange(of: markup, initial: true) { _, value in
       self.attributedString = (try? parser.attributedString(for: value)) ?? .init()
     }
