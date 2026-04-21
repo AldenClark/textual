@@ -16,6 +16,7 @@ import SwiftUI
 // `AttributeContainer`. Animatable effects are passed through the environment
 // and provided to this renderer by `TextFragment`.
 
+@available(iOS 18.0, macOS 15.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *)
 struct TextualTextRenderer: TextRenderer {
   var animatableEffect: AnyAnimatableEffect?
 

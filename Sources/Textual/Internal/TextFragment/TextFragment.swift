@@ -68,7 +68,11 @@ struct TextFragment<Content: AttributedStringProtocol>: View {
     let baseText = text.customAttribute(TextFragmentAttribute())
 
     if needsCustomRenderer {
-      baseText.textRenderer(TextualTextRenderer(animatableEffect: animatableEffect))
+      if #available(iOS 18.0, macOS 15.0, tvOS 18.0, watchOS 11.0, visionOS 2.0, *) {
+        baseText.textRenderer(TextualTextRenderer(animatableEffect: animatableEffect))
+      } else {
+        baseText
+      }
     } else {
       baseText
     }
