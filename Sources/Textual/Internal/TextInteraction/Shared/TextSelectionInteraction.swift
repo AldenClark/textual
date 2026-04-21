@@ -25,9 +25,12 @@ struct TextSelectionInteraction: ViewModifier {
         content
           .overlayTextLayoutCollection { layoutCollection in
             Color.clear
-              .task(id: AnyTextLayoutCollection(layoutCollection)) {
-                model.setCoordinator(coordinator)
-                model.setLayoutCollection(layoutCollection)
+              .onChange(of: AnyTextLayoutCollection(layoutCollection), initial: true) { _, newValue in
+                // Avoid synchronously mutating observable selection state in the onChange action.
+                Task { @MainActor in
+                  model.setCoordinator(coordinator)
+                  model.setLayoutCollection(newValue)
+                }
               }
           }
           .modifier(PlatformTextSelectionInteraction(model: model))

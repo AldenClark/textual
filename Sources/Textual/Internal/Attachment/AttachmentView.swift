@@ -84,6 +84,7 @@ struct AttachmentView: View {
     return ZStack(alignment: .topLeading) {
       ForEach(positions) { position in
         position.attachment.body
+          .textual.interactiveRegion()
           .opacity(position.opacity)
           .frame(width: position.bounds.width, height: position.bounds.height)
           .position(

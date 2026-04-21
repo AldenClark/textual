@@ -59,6 +59,10 @@ private struct URLBackedImageAttachmentView: View {
 
   var body: some View {
     contentView(for: resolvedURL ?? url)
+      .contentShape(Rectangle())
+      .onTapGesture {
+        tapAction?(url)
+      }
       .overlay(alignment: .bottomTrailing) {
         if isSupportedAnimatedAsset, !isAnimating {
           Button(action: requestPlayback) {
@@ -71,10 +75,6 @@ private struct URLBackedImageAttachmentView: View {
           .buttonStyle(.plain)
           .accessibilityLabel("Play animated image")
         }
-      }
-      .contentShape(Rectangle())
-      .onTapGesture {
-        tapAction?(url)
       }
       .task(id: url) {
         resolvedURL = await resolver.sourceURL(for: url)
