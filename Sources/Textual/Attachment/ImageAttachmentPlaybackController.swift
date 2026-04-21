@@ -9,10 +9,12 @@ public final class ImageAttachmentPlaybackController: ObservableObject {
   }
 
   public func play(_ attachmentID: String) {
+    guard activeAttachmentID != attachmentID else { return }
     activeAttachmentID = attachmentID
   }
 
   public func stop() {
+    guard activeAttachmentID != nil else { return }
     activeAttachmentID = nil
   }
 
@@ -21,4 +23,3 @@ public final class ImageAttachmentPlaybackController: ObservableObject {
     activeAttachmentID = nil
   }
 }
-

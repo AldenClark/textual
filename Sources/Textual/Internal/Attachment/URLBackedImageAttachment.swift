@@ -1,6 +1,7 @@
 import SwiftUI
 import Combine
 import ImageIO
+import Foundation
 
 #if canImport(SDWebImageSwiftUI)
   import SDWebImageSwiftUI
@@ -159,7 +160,7 @@ private struct URLBackedImageAttachmentView: View {
   }
 
   private func refreshAnimationMetadata(for sourceURL: URL) async {
-    let metadata = Self.readAnimationMetadata(from: sourceURL)
+    let metadata = await Self.readAnimationMetadata(from: sourceURL)
     await MainActor.run {
       isSupportedAnimatedAsset = metadata.supported
       singleLoopDuration = metadata.singleLoopDuration
@@ -169,21 +170,47 @@ private struct URLBackedImageAttachmentView: View {
     }
   }
 
-  private struct AnimationMetadata {
+  private struct AnimationMetadata: Sendable {
     let supported: Bool
     let singleLoopDuration: TimeInterval
   }
 
-  private static func readAnimationMetadata(from sourceURL: URL) -> AnimationMetadata {
-    guard let source = CGImageSourceCreateWithURL(sourceURL as CFURL, nil) else {
-      return .init(supported: false, singleLoopDuration: 0.6)
+  nonisolated private static func readAnimationMetadata(from sourceURL: URL) async -> AnimationMetadata {
+    if sourceURL.isFileURL {
+      return await Task.detached(priority: .utility) {
+        guard let source = CGImageSourceCreateWithURL(sourceURL as CFURL, nil) else {
+          return AnimationMetadata(supported: false, singleLoopDuration: 0.6)
+        }
+        return Self.readAnimationMetadata(from: source)
+      }
+      .value
     }
 
+    var request = URLRequest(url: sourceURL)
+    request.timeoutInterval = 8
+
+    do {
+      let (data, response) = try await URLSession.shared.data(for: request)
+      if let http = response as? HTTPURLResponse, http.statusCode >= 400 {
+        return .init(supported: false, singleLoopDuration: 0.6)
+      }
+      return await Task.detached(priority: .utility) {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else {
+          return AnimationMetadata(supported: false, singleLoopDuration: 0.6)
+        }
+        return Self.readAnimationMetadata(from: source)
+      }
+      .value
+    } catch {
+      return .init(supported: false, singleLoopDuration: 0.6)
+    }
+  }
+
+  nonisolated private static func readAnimationMetadata(from source: CGImageSource) -> AnimationMetadata {
     let frameCount = CGImageSourceGetCount(source)
     guard frameCount > 1 else {
       return .init(supported: false, singleLoopDuration: 0.6)
     }
-
     let typeIdentifier = (CGImageSourceGetType(source) as String?)?.lowercased() ?? ""
     let isAnimatedFormat =
       typeIdentifier.contains("gif") ||
@@ -211,7 +238,7 @@ private struct URLBackedImageAttachmentView: View {
     return .init(supported: true, singleLoopDuration: duration)
   }
 
-  private static func frameDelay(from properties: [CFString: Any]) -> TimeInterval {
+  nonisolated private static func frameDelay(from properties: [CFString: Any]) -> TimeInterval {
     let dictionaries: [[CFString: Any]] = [
       properties[kCGImagePropertyGIFDictionary] as? [CFString: Any],
       properties[kCGImagePropertyPNGDictionary] as? [CFString: Any],
@@ -232,7 +259,7 @@ private struct URLBackedImageAttachmentView: View {
     return 0.1
   }
 
-  private static func readDelayValue(
+  nonisolated private static func readDelayValue(
     from dictionary: [CFString: Any],
     matching keyword: String
   ) -> TimeInterval? {
