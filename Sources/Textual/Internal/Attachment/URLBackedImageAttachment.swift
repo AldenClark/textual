@@ -1,5 +1,4 @@
 import SwiftUI
-import Combine
 import ImageIO
 import Foundation
 
@@ -82,7 +81,7 @@ private struct URLBackedImageAttachmentView: View {
       .task(id: resolvedURL ?? url) {
         await refreshAnimationMetadata(for: resolvedURL ?? url)
       }
-      .onReceive(playbackController.$activeAttachmentID.removeDuplicates()) { activeAttachmentID in
+      .onChange(of: playbackController.activeAttachmentID) { _, activeAttachmentID in
         handlePlaybackState(activeAttachmentID: activeAttachmentID)
       }
       .onAppear {
@@ -91,8 +90,7 @@ private struct URLBackedImageAttachmentView: View {
       .onDisappear {
         playbackTask?.cancel()
         playbackTask = nil
-        isAnimating = false
-        playbackController.stop(ifActive: attachmentID)
+        stopPlayback()
       }
   }
 
@@ -154,6 +152,7 @@ private struct URLBackedImageAttachmentView: View {
   }
 
   private func stopPlayback() {
+    guard isAnimating || playbackTask != nil else { return }
     isAnimating = false
     playbackTask?.cancel()
     playbackTask = nil
@@ -162,8 +161,12 @@ private struct URLBackedImageAttachmentView: View {
   private func refreshAnimationMetadata(for sourceURL: URL) async {
     let metadata = await Self.readAnimationMetadata(from: sourceURL)
     await MainActor.run {
-      isSupportedAnimatedAsset = metadata.supported
-      singleLoopDuration = metadata.singleLoopDuration
+      if isSupportedAnimatedAsset != metadata.supported {
+        isSupportedAnimatedAsset = metadata.supported
+      }
+      if singleLoopDuration != metadata.singleLoopDuration {
+        singleLoopDuration = metadata.singleLoopDuration
+      }
       if !metadata.supported {
         playbackController.stop(ifActive: attachmentID)
       }

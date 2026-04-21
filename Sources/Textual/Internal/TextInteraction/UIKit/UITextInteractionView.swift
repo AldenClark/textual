@@ -27,6 +27,7 @@
 
     private(set) lazy var _tokenizer = UITextInputStringTokenizer(textInput: self)
     private let selectionInteraction: UITextInteraction
+    private var didConfigureScrollGestureCoordination = false
 
     init(
       model: TextSelectionModel,
@@ -55,6 +56,11 @@
         }
       }
       return super.point(inside: point, with: event)
+    }
+
+    override func didMoveToWindow() {
+      super.didMoveToWindow()
+      configureScrollGestureCoordinationIfNeeded()
     }
 
     override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
@@ -95,6 +101,8 @@
       }
 
       let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
+      tapGesture.cancelsTouchesInView = false
+      tapGesture.delegate = self
       addGestureRecognizer(tapGesture)
 
       selectionInteraction.textInput = self
@@ -105,6 +113,32 @@
       }
 
       addInteraction(selectionInteraction)
+    }
+
+    private func configureScrollGestureCoordinationIfNeeded() {
+      guard !didConfigureScrollGestureCoordination else {
+        return
+      }
+      guard let scrollView = enclosingScrollView() else {
+        return
+      }
+
+      let panGestureRecognizer = scrollView.panGestureRecognizer
+      for gesture in selectionInteraction.gesturesForFailureRequirements where gesture !== panGestureRecognizer {
+        gesture.require(toFail: panGestureRecognizer)
+      }
+      didConfigureScrollGestureCoordination = true
+    }
+
+    private func enclosingScrollView() -> UIScrollView? {
+      var view = superview
+      while let current = view {
+        if let scrollView = current as? UIScrollView {
+          return scrollView
+        }
+        view = current.superview
+      }
+      return nil
     }
 
     @objc private func handleTap(_ gesture: UITapGestureRecognizer) {
@@ -203,6 +237,18 @@
 
     func interactionDidEnd(_ interaction: UITextInteraction) {
       logger.debug("interactionDidEnd")
+    }
+  }
+
+  extension UITextInteractionView: UIGestureRecognizerDelegate {
+    func gestureRecognizer(
+      _ gestureRecognizer: UIGestureRecognizer,
+      shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+    ) -> Bool {
+      guard let scrollView = enclosingScrollView() else {
+        return false
+      }
+      return otherGestureRecognizer === scrollView.panGestureRecognizer
     }
   }
 

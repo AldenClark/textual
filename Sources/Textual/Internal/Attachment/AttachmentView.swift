@@ -95,7 +95,7 @@ struct AttachmentView: View {
   }
 
   private struct AttachmentPosition: Identifiable {
-    let id = UUID()
+    let id: String
     let attachment: AnyAttachment
     let bounds: CGRect
     let opacity: CGFloat
@@ -118,6 +118,7 @@ struct AttachmentView: View {
 
         positions.append(
           AttachmentPosition(
+            id: "\(lineIndex)-\(runIndex)-\(attachment.hashValue)",
             attachment: attachment,
             bounds: run.typographicBounds.rect,
             opacity: opacity
