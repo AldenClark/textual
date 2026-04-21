@@ -272,10 +272,11 @@
       }
 
       let attributedText = model.attributedText(in: selectedRange)
-      let transferableText = TransferableText(attributedString: attributedText)
-      let itemProvider = NSItemProvider(object: transferableText)
+      let formatter = Formatter(attributedText)
+      let text = formatter.plainText()
+      let shareableText = (text.isEmpty ? attributedText.string : text) as NSString
 
-      let sharingPicker = NSSharingServicePicker(items: [itemProvider])
+      let sharingPicker = NSSharingServicePicker(items: [shareableText])
       let rect =
         model.selectionRects(for: selectedRange)
         .last?.rect.integral ?? .zero
