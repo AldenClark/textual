@@ -91,6 +91,7 @@ private struct URLBackedImageAttachmentView: View {
         handlePlaybackState(activeAttachmentID: activeAttachmentID)
       }
       .onAppear {
+        SDWebImageAnimatedCoders.bootstrapIfNeeded()
         handlePlaybackState(activeAttachmentID: playbackController.activeAttachmentID)
       }
       .onDisappear {
@@ -104,7 +105,11 @@ private struct URLBackedImageAttachmentView: View {
   private func contentView(for sourceURL: URL) -> some View {
     #if canImport(SDWebImageSwiftUI)
       if isSupportedAnimatedAsset, isPlaying {
-        AnimatedImage(url: sourceURL)
+        AnimatedImage(
+          url: sourceURL,
+          options: [.matchAnimatedImageClass],
+          isAnimating: $isPlaying
+        )
           .indicator(.activity)
           .customLoopCount(1)
           .resizable()
