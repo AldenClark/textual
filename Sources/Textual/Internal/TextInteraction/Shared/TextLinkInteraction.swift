@@ -18,14 +18,28 @@ struct TextLinkInteraction: ViewModifier {
         .overlayPreferenceValue(Text.LayoutKey.self) { value in
           if let anchoredLayout = value.first {
             GeometryReader { geometry in
-              Color.clear
-                .contentShape(.rect)
-                .simultaneousGesture(
-                  tap(
-                    origin: geometry[anchoredLayout.origin],
-                    layout: anchoredLayout.layout
-                  )
-                )
+              let hotspots = linkHotspots(
+                origin: geometry[anchoredLayout.origin],
+                layout: anchoredLayout.layout
+              )
+
+              ZStack(alignment: .topLeading) {
+                ForEach(hotspots) { hotspot in
+                  Color.clear
+                    .contentShape(Rectangle())
+                    .frame(
+                      width: max(hotspot.rect.width, 1),
+                      height: max(hotspot.rect.height, 1)
+                    )
+                    .position(
+                      x: hotspot.rect.midX,
+                      y: hotspot.rect.midY
+                    )
+                    .onTapGesture {
+                      openURL(hotspot.url)
+                    }
+                }
+              }
             }
           }
         }
@@ -35,21 +49,26 @@ struct TextLinkInteraction: ViewModifier {
   }
 
   #if TEXTUAL_ENABLE_LINKS
-    private func tap(origin: CGPoint, layout: Text.Layout) -> some Gesture {
-      SpatialTapGesture()
-        .onEnded { value in
-          let localPoint = CGPoint(
-            x: value.location.x - origin.x,
-            y: value.location.y - origin.y
+    private struct LinkHotspot: Identifiable {
+      let id: Int
+      let rect: CGRect
+      let url: URL
+    }
+
+    private func linkHotspots(origin: CGPoint, layout: Text.Layout) -> [LinkHotspot] {
+      layout
+        .flatMap(\.self)
+        .enumerated()
+        .compactMap { index, run in
+          guard let url = run.url else {
+            return nil
+          }
+
+          return LinkHotspot(
+            id: index,
+            rect: run.typographicBounds.rect.offsetBy(dx: origin.x, dy: origin.y),
+            url: url
           )
-          let runs = layout.flatMap(\.self)
-          let run = runs.first { run in
-            run.typographicBounds.rect.contains(localPoint)
-          }
-          guard let url = run?.url else {
-            return
-          }
-          openURL(url)
         }
     }
   #endif
