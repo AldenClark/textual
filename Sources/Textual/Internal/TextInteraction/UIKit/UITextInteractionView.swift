@@ -27,7 +27,6 @@
 
     private(set) lazy var _tokenizer = UITextInputStringTokenizer(textInput: self)
     private let selectionInteraction: UITextInteraction
-    private var didConfigureScrollGestureCoordination = false
 
     init(
       model: TextSelectionModel,
@@ -56,11 +55,6 @@
         }
       }
       return super.point(inside: point, with: event)
-    }
-
-    override func didMoveToWindow() {
-      super.didMoveToWindow()
-      configureScrollGestureCoordinationIfNeeded()
     }
 
     override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
@@ -113,21 +107,6 @@
       }
 
       addInteraction(selectionInteraction)
-    }
-
-    private func configureScrollGestureCoordinationIfNeeded() {
-      guard !didConfigureScrollGestureCoordination else {
-        return
-      }
-      guard let scrollView = enclosingScrollView() else {
-        return
-      }
-
-      let panGestureRecognizer = scrollView.panGestureRecognizer
-      for gesture in selectionInteraction.gesturesForFailureRequirements where gesture !== panGestureRecognizer {
-        gesture.require(toFail: panGestureRecognizer)
-      }
-      didConfigureScrollGestureCoordination = true
     }
 
     private func enclosingScrollView() -> UIScrollView? {
