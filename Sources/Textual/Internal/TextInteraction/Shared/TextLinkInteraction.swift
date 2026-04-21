@@ -20,7 +20,7 @@ struct TextLinkInteraction: ViewModifier {
             GeometryReader { geometry in
               Color.clear
                 .contentShape(.rect)
-                .gesture(
+                .simultaneousGesture(
                   tap(
                     origin: geometry[anchoredLayout.origin],
                     layout: anchoredLayout.layout
