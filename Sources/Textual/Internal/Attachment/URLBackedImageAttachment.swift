@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 import ImageIO
 import Foundation
 
@@ -81,7 +82,7 @@ private struct URLBackedImageAttachmentView: View {
       .task(id: resolvedURL ?? url) {
         await refreshAnimationMetadata(for: resolvedURL ?? url)
       }
-      .onChange(of: playbackController.activeAttachmentID) { _, activeAttachmentID in
+      .onReceive(playbackController.$activeAttachmentID.removeDuplicates()) { activeAttachmentID in
         handlePlaybackState(activeAttachmentID: activeAttachmentID)
       }
       .onAppear {

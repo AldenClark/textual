@@ -17,8 +17,6 @@ struct TextSelectionInteraction: ViewModifier {
     @Environment(TextSelectionCoordinator.self) private var coordinator: TextSelectionCoordinator?
 
     @State private var model = TextSelectionModel()
-    @State private var pendingLayoutCollection: AnyTextLayoutCollection?
-    @State private var isLayoutUpdateScheduled = false
   #endif
 
   func body(content: Content) -> some View {
@@ -27,8 +25,9 @@ struct TextSelectionInteraction: ViewModifier {
         content
           .overlayTextLayoutCollection { layoutCollection in
             Color.clear
-              .onChange(of: AnyTextLayoutCollection(layoutCollection), initial: true) { _, newValue in
-                enqueueLayoutUpdate(newValue)
+              .task(id: AnyTextLayoutCollection(layoutCollection)) {
+                model.setCoordinator(coordinator)
+                model.setLayoutCollection(layoutCollection)
               }
           }
           .modifier(PlatformTextSelectionInteraction(model: model))
@@ -39,28 +38,6 @@ struct TextSelectionInteraction: ViewModifier {
       content
     #endif
   }
-
-  #if TEXTUAL_ENABLE_TEXT_SELECTION
-    @MainActor
-    private func enqueueLayoutUpdate(_ layoutCollection: AnyTextLayoutCollection) {
-      pendingLayoutCollection = layoutCollection
-      guard !isLayoutUpdateScheduled else {
-        return
-      }
-
-      isLayoutUpdateScheduled = true
-      Task { @MainActor in
-        defer { isLayoutUpdateScheduled = false }
-        guard let pendingLayoutCollection else {
-          return
-        }
-
-        self.pendingLayoutCollection = nil
-        model.setCoordinator(coordinator)
-        model.setLayoutCollection(pendingLayoutCollection)
-      }
-    }
-  #endif
 }
 
 #if TEXTUAL_ENABLE_TEXT_SELECTION
