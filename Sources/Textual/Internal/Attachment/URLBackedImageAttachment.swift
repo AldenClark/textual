@@ -60,7 +60,13 @@ private struct URLBackedImageAttachmentView: View {
   let url: URL
 
   var body: some View {
-    contentView(for: resolvedURL ?? url)
+    Group {
+      if let resolvedURL {
+        contentView(for: resolvedURL)
+      } else {
+        Color.clear
+      }
+    }
       .contentShape(Rectangle())
       .gesture(
         TapGesture().onEnded {
@@ -83,10 +89,18 @@ private struct URLBackedImageAttachmentView: View {
         }
       }
       .task(id: url) {
-        resolvedURL = await resolver.sourceURL(for: url)
+        resolvedURL = await resolver.resolvedSourceURL(for: url)
       }
-      .task(id: resolvedURL ?? url) {
-        await refreshAnimationMetadata(for: resolvedURL ?? url)
+      .task(id: resolvedURL) {
+        guard let resolvedURL else {
+          await MainActor.run {
+            isSupportedAnimatedAsset = false
+            singleLoopDuration = 0.6
+            playbackController.stop(ifActive: attachmentID)
+          }
+          return
+        }
+        await refreshAnimationMetadata(for: resolvedURL)
       }
       .onReceive(playbackController.$activeAttachmentID.removeDuplicates()) { activeAttachmentID in
         handlePlaybackState(activeAttachmentID: activeAttachmentID)
