@@ -154,6 +154,22 @@ extension TextualNamespace where Base: View {
     base.environment(\.imageAttachmentURLResolver, resolver)
   }
 
+  /// Sets the tap handler for rendered image attachments.
+  ///
+  /// Use this to open image previews or route image taps to app-level UI.
+  public func imageAttachmentTapAction(_ action: ImageAttachmentTapAction?) -> some View {
+    base.environment(\.imageAttachmentTapAction, action)
+  }
+
+  /// Sets the playback controller for animated image attachments.
+  ///
+  /// Attachments bound to the same controller enforce single-active playback.
+  public func imageAttachmentPlaybackController(
+    _ controller: ImageAttachmentPlaybackController
+  ) -> some View {
+    base.environment(\.imageAttachmentPlaybackController, controller)
+  }
+
   /// Enables or disables text selection for ``InlineText`` and ``StructuredText``.
   @available(tvOS, unavailable)
   @available(watchOS, unavailable)

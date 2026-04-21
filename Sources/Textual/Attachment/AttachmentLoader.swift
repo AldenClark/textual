@@ -60,4 +60,6 @@ extension EnvironmentValues {
   @Entry var imageAttachmentLoader: any AttachmentLoader = .image()
   @Entry var emojiAttachmentLoader: any AttachmentLoader = .emoji()
   @Entry var imageAttachmentURLResolver: ImageAttachmentURLResolver = .passthrough
+  @Entry var imageAttachmentTapAction: ImageAttachmentTapAction? = nil
+  @Entry var imageAttachmentPlaybackController = ImageAttachmentPlaybackController()
 }
