@@ -49,6 +49,7 @@ private struct URLBackedImageAttachmentView: View {
   @Environment(\.imageAttachmentURLResolver) private var resolver
   @Environment(\.imageAttachmentTapAction) private var tapAction
   @Environment(\.imageAttachmentPlaybackController) private var playbackController
+  @State private var attachmentInstanceID = UUID().uuidString
   @State private var resolvedURL: URL?
   @State private var isSupportedAnimatedAsset = false
   @State private var singleLoopDuration: TimeInterval = 0.6
@@ -107,7 +108,7 @@ private struct URLBackedImageAttachmentView: View {
       if isSupportedAnimatedAsset, isPlaying {
         AnimatedImage(
           url: sourceURL,
-          options: [.matchAnimatedImageClass],
+          options: [.matchAnimatedImageClass, .fromLoaderOnly],
           isAnimating: .constant(true)
         )
           .indicator(.activity)
@@ -148,14 +149,12 @@ private struct URLBackedImageAttachmentView: View {
   }
 
   private var attachmentID: String {
-    url.absoluteString
+    "\(url.absoluteString)#\(attachmentInstanceID)"
   }
 
   private func requestPlayback() {
-    if playbackController.activeAttachmentID == attachmentID {
-      playbackController.stop()
-    }
     playbackController.play(attachmentID)
+    startPlaybackOnce(forceRestart: true)
   }
 
   private func handlePlaybackState(activeAttachmentID: String?) {
@@ -167,8 +166,8 @@ private struct URLBackedImageAttachmentView: View {
     }
   }
 
-  private func startPlaybackOnce() {
-    guard !isPlaying else { return }
+  private func startPlaybackOnce(forceRestart: Bool = false) {
+    if isPlaying, !forceRestart { return }
     isPlaying = true
     playbackSessionID = UUID()
     playbackTask?.cancel()
