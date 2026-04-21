@@ -59,4 +59,5 @@ public protocol AttachmentLoader: Sendable {
 extension EnvironmentValues {
   @Entry var imageAttachmentLoader: any AttachmentLoader = .image()
   @Entry var emojiAttachmentLoader: any AttachmentLoader = .emoji()
+  @Entry var imageAttachmentURLResolver: ImageAttachmentURLResolver = .passthrough
 }

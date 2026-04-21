@@ -18,6 +18,7 @@ let package = Package(
     .package(url: "https://github.com/pointfreeco/swift-concurrency-extras", from: "1.3.1"),
     .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.18.7"),
     .package(url: "https://github.com/gonzalezreal/swiftui-math", from: "0.1.0"),
+    .package(url: "https://github.com/SDWebImage/SDWebImageSwiftUI.git", from: "3.1.4"),
   ],
   targets: [
     .target(
@@ -25,6 +26,7 @@ let package = Package(
       dependencies: [
         .product(name: "ConcurrencyExtras", package: "swift-concurrency-extras"),
         .product(name: "SwiftUIMath", package: "swiftui-math"),
+        .product(name: "SDWebImageSwiftUI", package: "SDWebImageSwiftUI"),
       ],
       resources: [
         .process("Internal/Highlighter/Prism"),

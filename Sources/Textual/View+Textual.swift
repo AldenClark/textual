@@ -147,6 +147,13 @@ extension TextualNamespace where Base: View {
     base.environment(\.emojiAttachmentLoader, loader)
   }
 
+  /// Sets the URL resolver used by URL-backed image attachments.
+  ///
+  /// Use this to map remote URLs to app-managed local file URLs before rendering.
+  public func imageAttachmentURLResolver(_ resolver: ImageAttachmentURLResolver) -> some View {
+    base.environment(\.imageAttachmentURLResolver, resolver)
+  }
+
   /// Enables or disables text selection for ``InlineText`` and ``StructuredText``.
   @available(tvOS, unavailable)
   @available(watchOS, unavailable)
