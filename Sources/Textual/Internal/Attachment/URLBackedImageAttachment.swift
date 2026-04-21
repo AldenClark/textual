@@ -52,7 +52,8 @@ private struct URLBackedImageAttachmentView: View {
   @State private var resolvedURL: URL?
   @State private var isSupportedAnimatedAsset = false
   @State private var singleLoopDuration: TimeInterval = 0.6
-  @State private var isAnimating = false
+  @State private var isPlaying = false
+  @State private var playbackSessionID = UUID()
   @State private var playbackTask: Task<Void, Never>?
 
   let url: URL
@@ -67,7 +68,7 @@ private struct URLBackedImageAttachmentView: View {
         including: .gesture
       )
       .overlay(alignment: .bottomTrailing) {
-        if isSupportedAnimatedAsset, !isAnimating {
+        if isSupportedAnimatedAsset, !isPlaying {
           Button(action: requestPlayback) {
             SwiftUI.Image(systemName: "play.circle.fill")
               .font(.system(size: 30, weight: .semibold))
@@ -76,6 +77,7 @@ private struct URLBackedImageAttachmentView: View {
               .padding(8)
           }
           .buttonStyle(.plain)
+          .contentShape(Rectangle())
           .accessibilityLabel("Play animated image")
         }
       }
@@ -101,11 +103,23 @@ private struct URLBackedImageAttachmentView: View {
   @ViewBuilder
   private func contentView(for sourceURL: URL) -> some View {
     #if canImport(SDWebImageSwiftUI)
-      AnimatedImage(url: sourceURL, isAnimating: $isAnimating)
+      if isSupportedAnimatedAsset, isPlaying {
+        AnimatedImage(url: sourceURL)
+          .indicator(.activity)
+          .customLoopCount(1)
+          .resizable()
+          .scaledToFit()
+          .id(playbackSessionID)
+      } else {
+        WebImage(url: sourceURL) { image in
+          image
+            .resizable()
+            .scaledToFit()
+        } placeholder: {
+          Color.clear
+        }
         .indicator(.activity)
-        .customLoopCount(1)
-        .resizable()
-        .scaledToFit()
+      }
     #else
       AsyncImage(url: sourceURL) { phase in
         switch phase {
@@ -130,6 +144,7 @@ private struct URLBackedImageAttachmentView: View {
 
   private func requestPlayback() {
     playbackController.play(attachmentID)
+    startPlaybackOnce()
   }
 
   private func handlePlaybackState(activeAttachmentID: String?) {
@@ -142,22 +157,24 @@ private struct URLBackedImageAttachmentView: View {
   }
 
   private func startPlaybackOnce() {
-    guard !isAnimating else { return }
-    isAnimating = true
+    guard !isPlaying else { return }
+    isPlaying = true
+    playbackSessionID = UUID()
     playbackTask?.cancel()
-    let duration = max(singleLoopDuration, 0.12)
+    let duration = min(max(singleLoopDuration, 0.12), 20)
     playbackTask = Task { [duration, attachmentID, playbackController] in
       let delay = UInt64(duration * 1_000_000_000)
       try? await Task.sleep(nanoseconds: delay)
       await MainActor.run {
+        stopPlayback()
         playbackController.stop(ifActive: attachmentID)
       }
     }
   }
 
   private func stopPlayback() {
-    guard isAnimating || playbackTask != nil else { return }
-    isAnimating = false
+    guard isPlaying || playbackTask != nil else { return }
+    isPlaying = false
     playbackTask?.cancel()
     playbackTask = nil
   }
