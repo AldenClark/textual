@@ -25,10 +25,11 @@ struct TextSelectionInteraction: ViewModifier {
       if textSelection.allowsSelection {
         content
           .overlayTextLayoutCollection { layoutCollection in
+            let layoutCollectionSnapshot = AnyTextLayoutCollection(layoutCollection)
             Color.clear
-              .onChange(of: AnyTextLayoutCollection(layoutCollection), initial: true) { _, newValue in
+              .task(id: layoutCollectionSnapshot) {
                 layoutSync.schedule(
-                  newValue: newValue,
+                  newValue: layoutCollectionSnapshot,
                   coordinator: coordinator,
                   model: model
                 )
