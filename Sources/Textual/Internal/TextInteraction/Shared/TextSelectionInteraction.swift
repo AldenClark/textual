@@ -12,42 +12,78 @@ import SwiftUI
 // remain independent.
 
 struct TextSelectionInteraction: ViewModifier {
-  #if TEXTUAL_ENABLE_TEXT_SELECTION && !canImport(UIKit)
+  #if TEXTUAL_ENABLE_TEXT_SELECTION
     @Environment(\.textSelection) private var textSelection
     @Environment(TextSelectionCoordinator.self) private var coordinator: TextSelectionCoordinator?
 
     @State private var model = TextSelectionModel()
+    @State private var layoutSync = LayoutSync()
   #endif
 
   func body(content: Content) -> some View {
     #if TEXTUAL_ENABLE_TEXT_SELECTION
-      #if canImport(UIKit)
-        // Temporarily disable custom selection interaction on iOS-family platforms.
-        // This avoids SwiftUI runtime warnings caused by per-frame layout sync loops.
+      if textSelection.allowsSelection {
         content
-      #else
-        if textSelection.allowsSelection {
-          content
-            .overlayTextLayoutCollection { layoutCollection in
-              Color.clear
-                .onChange(of: AnyTextLayoutCollection(layoutCollection), initial: true) { _, newValue in
-                  // Avoid synchronously mutating observable selection state in the onChange action.
-                  Task { @MainActor in
-                    model.setCoordinator(coordinator)
-                    model.setLayoutCollection(newValue)
-                  }
-                }
-            }
-            .modifier(PlatformTextSelectionInteraction(model: model))
-        } else {
-          content
-        }
-      #endif
+          .overlayTextLayoutCollection { layoutCollection in
+            Color.clear
+              .onChange(of: AnyTextLayoutCollection(layoutCollection), initial: true) { _, newValue in
+                layoutSync.schedule(
+                  newValue: newValue,
+                  coordinator: coordinator,
+                  model: model
+                )
+              }
+          }
+          .modifier(PlatformTextSelectionInteraction(model: model))
+          .onDisappear {
+            layoutSync.cancelPendingUpdate()
+          }
+      } else {
+        content
+      }
     #else
       content
     #endif
   }
 }
+
+#if TEXTUAL_ENABLE_TEXT_SELECTION
+  @MainActor
+  private final class LayoutSync {
+    private var pendingTask: Task<Void, Never>?
+    private var latestRequestedLayoutCollection: AnyTextLayoutCollection?
+
+    deinit {
+      pendingTask?.cancel()
+    }
+
+    func schedule(
+      newValue: AnyTextLayoutCollection,
+      coordinator: TextSelectionCoordinator?,
+      model: TextSelectionModel
+    ) {
+      guard latestRequestedLayoutCollection != newValue else {
+        return
+      }
+
+      latestRequestedLayoutCollection = newValue
+      pendingTask?.cancel()
+      pendingTask = Task { @MainActor [newValue] in
+        await Task.yield()
+        guard !Task.isCancelled else {
+          return
+        }
+        model.setCoordinator(coordinator)
+        model.setLayoutCollection(newValue)
+      }
+    }
+
+    func cancelPendingUpdate() {
+      pendingTask?.cancel()
+      pendingTask = nil
+    }
+  }
+#endif
 
 #if TEXTUAL_ENABLE_TEXT_SELECTION
   extension EnvironmentValues {
