@@ -91,10 +91,9 @@ public struct AdaptiveURLImageAttachmentLoader: AttachmentLoader {
 
 private enum MarkdownImageDebug {
   private static let enabledKey = "io.ethan.pushgo.MarkdownImageDebug"
-  private static let fileURL = URL(fileURLWithPath: "/tmp/pushgo_markdown_image_debug.log")
+  private static let fileURL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Group Containers/group.ethan.pushgo.messages/Cache/pushgo_markdown_image_debug.log")
 
   static func log(_ message: String) {
-    guard UserDefaults.standard.bool(forKey: enabledKey) else { return }
     append("[TextualMarkdownImage] \(message)")
   }
 
