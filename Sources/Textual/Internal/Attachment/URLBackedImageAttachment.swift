@@ -36,21 +36,13 @@ struct URLBackedImageAttachment: Attachment {
       // Keep a conservative default size when intrinsic dimensions are unknown.
       // This avoids stretching small images to full line width.
       let defaultWidth = min(maxWidth, 240)
-      let size = CGSize(width: defaultWidth, height: defaultWidth * 9.0 / 16.0)
-      MarkdownImageDebug.log(
-        "sizeThatFits fallback url=\(MarkdownImageDebug.urlKey(url)) proposal=\(Int(proposal.width ?? -1)) hint=\(Int(environment.imageAttachmentWidthHint ?? -1)) result=\(MarkdownImageDebug.sizeKey(size))"
-      )
-      return size
+      return CGSize(width: defaultWidth, height: defaultWidth * 9.0 / 16.0)
     }
 
     let aspect = intrinsicSize.width / intrinsicSize.height
     let width = min(maxWidth, intrinsicSize.width)
     let height = width / aspect
-    let size = CGSize(width: width, height: height)
-    MarkdownImageDebug.log(
-      "sizeThatFits intrinsic url=\(MarkdownImageDebug.urlKey(url)) proposal=\(Int(proposal.width ?? -1)) hint=\(Int(environment.imageAttachmentWidthHint ?? -1)) intrinsic=\(MarkdownImageDebug.sizeKey(intrinsicSize)) result=\(MarkdownImageDebug.sizeKey(size))"
-    )
-    return size
+    return CGSize(width: width, height: height)
   }
 }
 
@@ -99,9 +91,6 @@ private struct URLBackedImageAttachmentView: View {
       }
       .task(id: url) {
         let sourceURL = await resolver.resolvedSourceURL(for: url)
-        MarkdownImageDebug.log(
-          "resolvedSource url=\(MarkdownImageDebug.urlKey(url)) source=\(MarkdownImageDebug.urlKey(sourceURL ?? url))"
-        )
         resolvedURL = sourceURL
       }
       .task(id: resolvedURL) {
@@ -339,35 +328,3 @@ private struct URLBackedImageAttachmentView: View {
   }
 }
 
-private enum MarkdownImageDebug {
-  private static let enabledKey = "io.ethan.pushgo.MarkdownImageDebug"
-  private static let fileURL = URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Library/Caches/pushgo_markdown_image_debug.log")
-
-  static func log(_ message: String) {
-    append("[TextualMarkdownImageView] \(message)")
-  }
-
-  static func urlKey(_ url: URL) -> String {
-    if !url.lastPathComponent.isEmpty {
-      return url.lastPathComponent
-    }
-    return String(url.absoluteString.suffix(80))
-  }
-
-  static func sizeKey(_ size: CGSize) -> String {
-    "\(Int(size.width))x\(Int(size.height))"
-  }
-
-  private static func append(_ line: String) {
-    let entry = "\(ISO8601DateFormatter().string(from: Date())) \(line)\n"
-    let data = Data(entry.utf8)
-    if FileManager.default.fileExists(atPath: fileURL.path) == false {
-      _ = FileManager.default.createFile(atPath: fileURL.path, contents: data)
-      return
-    }
-    guard let handle = try? FileHandle(forWritingTo: fileURL) else { return }
-    defer { try? handle.close() }
-    _ = try? handle.seekToEnd()
-    try? handle.write(contentsOf: data)
-  }
-}

@@ -49,9 +49,6 @@ public struct AdaptiveURLImageAttachmentLoader: AttachmentLoader {
       return nil
     case .sdWebImage:
       let intrinsicSize = syncSizeProvider?(imageURL)
-      MarkdownImageDebug.log(
-        "provisional url=\(MarkdownImageDebug.urlKey(imageURL)) size=\(MarkdownImageDebug.sizeKey(intrinsicSize))"
-      )
       return .urlBacked(
         URLBackedImageAttachment(
           url: imageURL,
@@ -75,9 +72,6 @@ public struct AdaptiveURLImageAttachmentLoader: AttachmentLoader {
       return .decoded(ImageAttachment(image: image, text: text))
     case .sdWebImage:
       let intrinsicSize = await sizeProvider?(imageURL)
-      MarkdownImageDebug.log(
-        "resolved url=\(MarkdownImageDebug.urlKey(imageURL)) size=\(MarkdownImageDebug.sizeKey(intrinsicSize))"
-      )
       return .urlBacked(
         URLBackedImageAttachment(
           url: imageURL,
@@ -89,39 +83,6 @@ public struct AdaptiveURLImageAttachmentLoader: AttachmentLoader {
   }
 }
 
-private enum MarkdownImageDebug {
-  private static let enabledKey = "io.ethan.pushgo.MarkdownImageDebug"
-  private static let fileURL = URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Library/Caches/pushgo_markdown_image_debug.log")
-
-  static func log(_ message: String) {
-    append("[TextualMarkdownImage] \(message)")
-  }
-
-  static func urlKey(_ url: URL) -> String {
-    if !url.lastPathComponent.isEmpty {
-      return url.lastPathComponent
-    }
-    return String(url.absoluteString.suffix(80))
-  }
-
-  static func sizeKey(_ size: CGSize?) -> String {
-    guard let size else { return "nil" }
-    return "\(Int(size.width))x\(Int(size.height))"
-  }
-
-  private static func append(_ line: String) {
-    let entry = "\(ISO8601DateFormatter().string(from: Date())) \(line)\n"
-    let data = Data(entry.utf8)
-    if FileManager.default.fileExists(atPath: fileURL.path) == false {
-      _ = FileManager.default.createFile(atPath: fileURL.path, contents: data)
-      return
-    }
-    guard let handle = try? FileHandle(forWritingTo: fileURL) else { return }
-    defer { try? handle.close() }
-    _ = try? handle.seekToEnd()
-    try? handle.write(contentsOf: data)
-  }
-}
 
 extension AttachmentLoader where Self == AdaptiveURLImageAttachmentLoader {
   /// Loads markdown images using the selected backend.
