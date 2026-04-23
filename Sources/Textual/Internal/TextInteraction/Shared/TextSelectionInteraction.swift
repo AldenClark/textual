@@ -25,12 +25,16 @@ struct TextSelectionInteraction: ViewModifier {
       if textSelection.allowsSelection {
         content
           .overlayTextLayoutCollection { layoutCollection in
+            let layoutCollectionSnapshot = AnyTextLayoutCollection(layoutCollection)
+            let updateKey = StableLayoutUpdateKey(layoutCollectionSnapshot)
             Color.clear
-              .onChange(of: AnyTextLayoutCollection(layoutCollection), initial: true) {
+              .id(updateKey)
+              .task {
                 modelUpdater.schedule(
+                  taskKey: updateKey,
                   model: model,
                   coordinator: coordinator,
-                  layoutCollection: layoutCollection
+                  layoutCollection: layoutCollectionSnapshot
                 )
               }
           }
@@ -59,46 +63,63 @@ struct TextSelectionInteraction: ViewModifier {
 #if TEXTUAL_ENABLE_TEXT_SELECTION
   @MainActor
   private final class TextSelectionModelUpdater {
-    private weak var model: TextSelectionModel?
-    private weak var coordinator: TextSelectionCoordinator?
-    private var layoutCollection: (any TextLayoutCollection)?
-    private var isScheduled = false
+    private var pendingTask: Task<Void, Never>?
+    private var latestRequestedTaskKey: StableLayoutUpdateKey?
+
+    deinit {
+      pendingTask?.cancel()
+    }
 
     func schedule(
+      taskKey: StableLayoutUpdateKey,
       model: TextSelectionModel,
       coordinator: TextSelectionCoordinator?,
-      layoutCollection: any TextLayoutCollection
+      layoutCollection: AnyTextLayoutCollection
     ) {
-      self.model = model
-      self.coordinator = coordinator
-      self.layoutCollection = layoutCollection
-
-      guard !isScheduled else {
+      guard latestRequestedTaskKey != taskKey else {
         return
       }
-      isScheduled = true
+      latestRequestedTaskKey = taskKey
 
-      DispatchQueue.main.async { [weak self] in
-        guard let self else { return }
-        self.isScheduled = false
-
-        guard
-          let model = self.model,
-          let layoutCollection = self.layoutCollection
-        else {
+      pendingTask?.cancel()
+      pendingTask = Task { @MainActor in
+        await Task.yield()
+        guard !Task.isCancelled else {
           return
         }
 
-        model.setCoordinator(self.coordinator)
+        model.setCoordinator(coordinator)
         model.setLayoutCollection(layoutCollection)
       }
     }
 
     func cancel() {
-      model = nil
-      coordinator = nil
-      layoutCollection = nil
-      isScheduled = false
+      pendingTask?.cancel()
+      pendingTask = nil
+      latestRequestedTaskKey = nil
+    }
+  }
+
+  private struct StableLayoutUpdateKey: Hashable, Sendable {
+    private let digest: Int
+
+    init(_ layoutCollection: AnyTextLayoutCollection) {
+      var hasher = Hasher()
+      hasher.combine(layoutCollection.layouts.count)
+
+      for layout in layoutCollection.layouts {
+        hasher.combine(layout.attributedString.length)
+        hasher.combine(Self.roundedPixel(layout.origin.x))
+        hasher.combine(Self.roundedPixel(layout.origin.y))
+        hasher.combine(Self.roundedPixel(layout.bounds.width))
+        hasher.combine(Self.roundedPixel(layout.bounds.height))
+      }
+
+      digest = hasher.finalize()
+    }
+
+    private static func roundedPixel(_ value: CGFloat) -> Int {
+      Int((value * 2).rounded())
     }
   }
 #endif
