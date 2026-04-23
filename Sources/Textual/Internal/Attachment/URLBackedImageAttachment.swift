@@ -163,8 +163,7 @@ private struct URLBackedImageAttachmentView: View {
   }
 
   private var placeholderView: some View {
-    Rectangle()
-      .fill(Color.secondary.opacity(0.12))
+    Color.clear
   }
 
   private var attachmentID: String {
