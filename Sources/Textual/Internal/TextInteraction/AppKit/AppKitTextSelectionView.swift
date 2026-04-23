@@ -42,13 +42,19 @@
     }
 
     private func updateSelectionRects() {
+      let nextSelectionRects: [TextSelectionRect]
       if let textSelectionModel,
         let selectedRange = textSelectionModel.selectedRange
       {
-        selectionRects = textSelectionModel.selectionRects(for: selectedRange, layout: layout)
+        nextSelectionRects = textSelectionModel.selectionRects(for: selectedRange, layout: layout)
       } else {
-        selectionRects = []
+        nextSelectionRects = []
       }
+
+      guard nextSelectionRects != selectionRects else {
+        return
+      }
+      selectionRects = nextSelectionRects
     }
   }
 #endif
