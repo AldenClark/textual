@@ -20,6 +20,9 @@ public struct TextEnvironmentValues: Hashable, Sendable {
   /// Properties that control how Textual renders math expressions.
   public var mathProperties: MathProperties
 
+  /// Preferred width hint for sizing image attachments before SwiftUI provides a concrete proposal.
+  public var imageAttachmentWidthHint: CGFloat?
+
   /// The current color scheme in the environment.
   public var colorScheme: ColorScheme
 
@@ -40,6 +43,7 @@ public struct TextEnvironmentValues: Hashable, Sendable {
     legibilityWeight: LegibilityWeight? = nil,
     emojiProperties: EmojiProperties = .init(),
     mathProperties: MathProperties = .init(),
+    imageAttachmentWidthHint: CGFloat? = nil,
     colorScheme: ColorScheme = .light,
     colorSchemeContrast: ColorSchemeContrast = .standard
   ) {
@@ -48,6 +52,7 @@ public struct TextEnvironmentValues: Hashable, Sendable {
     self.legibilityWeight = legibilityWeight
     self.emojiProperties = emojiProperties
     self.mathProperties = mathProperties
+    self.imageAttachmentWidthHint = imageAttachmentWidthHint
     self.colorScheme = colorScheme
     self.colorSchemeContrast = colorSchemeContrast
   }
@@ -61,6 +66,7 @@ extension EnvironmentValues {
       legibilityWeight: legibilityWeight,
       emojiProperties: emojiProperties,
       mathProperties: mathProperties,
+      imageAttachmentWidthHint: imageAttachmentWidthHint,
       colorScheme: colorScheme,
       colorSchemeContrast: colorSchemeContrast
     )

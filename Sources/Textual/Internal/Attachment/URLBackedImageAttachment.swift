@@ -24,8 +24,9 @@ struct URLBackedImageAttachment: Attachment {
   }
 
   @usableFromInline
-  func sizeThatFits(_ proposal: ProposedViewSize, in _: TextEnvironmentValues) -> CGSize {
-    let maxWidth = max(min(proposal.width ?? 240, 960), 1)
+  func sizeThatFits(_ proposal: ProposedViewSize, in environment: TextEnvironmentValues) -> CGSize {
+    let proposedWidth = proposal.width ?? environment.imageAttachmentWidthHint ?? 240
+    let maxWidth = max(min(proposedWidth, 960), 1)
 
     guard
       let intrinsicSize,
@@ -37,7 +38,7 @@ struct URLBackedImageAttachment: Attachment {
       let defaultWidth = min(maxWidth, 240)
       let size = CGSize(width: defaultWidth, height: defaultWidth * 9.0 / 16.0)
       MarkdownImageDebug.log(
-        "sizeThatFits fallback url=\(MarkdownImageDebug.urlKey(url)) proposal=\(Int(proposal.width ?? -1)) result=\(MarkdownImageDebug.sizeKey(size))"
+        "sizeThatFits fallback url=\(MarkdownImageDebug.urlKey(url)) proposal=\(Int(proposal.width ?? -1)) hint=\(Int(environment.imageAttachmentWidthHint ?? -1)) result=\(MarkdownImageDebug.sizeKey(size))"
       )
       return size
     }
@@ -47,7 +48,7 @@ struct URLBackedImageAttachment: Attachment {
     let height = width / aspect
     let size = CGSize(width: width, height: height)
     MarkdownImageDebug.log(
-      "sizeThatFits intrinsic url=\(MarkdownImageDebug.urlKey(url)) proposal=\(Int(proposal.width ?? -1)) intrinsic=\(MarkdownImageDebug.sizeKey(intrinsicSize)) result=\(MarkdownImageDebug.sizeKey(size))"
+      "sizeThatFits intrinsic url=\(MarkdownImageDebug.urlKey(url)) proposal=\(Int(proposal.width ?? -1)) hint=\(Int(environment.imageAttachmentWidthHint ?? -1)) intrinsic=\(MarkdownImageDebug.sizeKey(intrinsicSize)) result=\(MarkdownImageDebug.sizeKey(size))"
     )
     return size
   }

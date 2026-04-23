@@ -170,6 +170,11 @@ extension TextualNamespace where Base: View {
     base.environment(\.imageAttachmentPlaybackController, controller)
   }
 
+  /// Sets a preferred width hint for image attachments before SwiftUI provides a concrete layout proposal.
+  public func imageAttachmentWidthHint(_ width: CGFloat?) -> some View {
+    base.environment(\.imageAttachmentWidthHint, width)
+  }
+
   /// Enables or disables text selection for ``InlineText`` and ``StructuredText``.
   @available(tvOS, unavailable)
   @available(watchOS, unavailable)

@@ -82,4 +82,5 @@ extension EnvironmentValues {
   @Entry var imageAttachmentURLResolver: ImageAttachmentURLResolver = .passthrough
   @Entry var imageAttachmentTapAction: ImageAttachmentTapAction? = nil
   @Entry var imageAttachmentPlaybackController = ImageAttachmentPlaybackController()
+  @Entry var imageAttachmentWidthHint: CGFloat? = nil
 }
