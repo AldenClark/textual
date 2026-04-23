@@ -362,12 +362,12 @@ private enum MarkdownImageDebug {
     let entry = "\(ISO8601DateFormatter().string(from: Date())) \(line)\n"
     let data = Data(entry.utf8)
     if FileManager.default.fileExists(atPath: fileURL.path) == false {
-      FileManager.default.createFile(atPath: fileURL.path, contents: data)
+      _ = FileManager.default.createFile(atPath: fileURL.path, contents: data)
       return
     }
     guard let handle = try? FileHandle(forWritingTo: fileURL) else { return }
     defer { try? handle.close() }
-    try? handle.seekToEnd()
+    _ = try? handle.seekToEnd()
     try? handle.write(contentsOf: data)
   }
 }
