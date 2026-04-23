@@ -1,3 +1,5 @@
+import Foundation
+import OSLog
 import SwiftUI
 
 public typealias URLImageAttachmentSizeProvider = @Sendable (URL) async -> CGSize?
@@ -48,6 +50,9 @@ public struct AdaptiveURLImageAttachmentLoader: AttachmentLoader {
       return nil
     case .sdWebImage:
       let intrinsicSize = syncSizeProvider?(imageURL)
+      MarkdownImageDebug.log(
+        "provisional url=\(MarkdownImageDebug.urlKey(imageURL), privacy: .public) size=\(MarkdownImageDebug.sizeKey(intrinsicSize), privacy: .public)"
+      )
       return .urlBacked(
         URLBackedImageAttachment(
           url: imageURL,
@@ -71,6 +76,9 @@ public struct AdaptiveURLImageAttachmentLoader: AttachmentLoader {
       return .decoded(ImageAttachment(image: image, text: text))
     case .sdWebImage:
       let intrinsicSize = await sizeProvider?(imageURL)
+      MarkdownImageDebug.log(
+        "resolved url=\(MarkdownImageDebug.urlKey(imageURL), privacy: .public) size=\(MarkdownImageDebug.sizeKey(intrinsicSize), privacy: .public)"
+      )
       return .urlBacked(
         URLBackedImageAttachment(
           url: imageURL,
@@ -79,6 +87,31 @@ public struct AdaptiveURLImageAttachmentLoader: AttachmentLoader {
         )
       )
     }
+  }
+}
+
+private enum MarkdownImageDebug {
+  private static let enabledKey = "io.ethan.pushgo.MarkdownImageDebug"
+  private static let logger = Logger(
+    subsystem: "com.github.gonzalezreal.Textual",
+    category: "markdownImage"
+  )
+
+  static func log(_ message: Logger.Message) {
+    guard UserDefaults.standard.bool(forKey: enabledKey) else { return }
+    logger.debug(message)
+  }
+
+  static func urlKey(_ url: URL) -> String {
+    if !url.lastPathComponent.isEmpty {
+      return url.lastPathComponent
+    }
+    return String(url.absoluteString.suffix(80))
+  }
+
+  static func sizeKey(_ size: CGSize?) -> String {
+    guard let size else { return "nil" }
+    return "\(Int(size.width))x\(Int(size.height))"
   }
 }
 

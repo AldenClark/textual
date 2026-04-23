@@ -2,6 +2,7 @@ import SwiftUI
 import Combine
 import ImageIO
 import Foundation
+import OSLog
 
 #if canImport(SDWebImageSwiftUI)
   import SDWebImageSwiftUI
@@ -35,13 +36,21 @@ struct URLBackedImageAttachment: Attachment {
       // Keep a conservative default size when intrinsic dimensions are unknown.
       // This avoids stretching small images to full line width.
       let defaultWidth = min(maxWidth, 240)
-      return CGSize(width: defaultWidth, height: defaultWidth * 9.0 / 16.0)
+      let size = CGSize(width: defaultWidth, height: defaultWidth * 9.0 / 16.0)
+      MarkdownImageDebug.log(
+        "sizeThatFits fallback url=\(MarkdownImageDebug.urlKey(url), privacy: .public) proposal=\(Int(proposal.width ?? -1)) result=\(MarkdownImageDebug.sizeKey(size), privacy: .public)"
+      )
+      return size
     }
 
     let aspect = intrinsicSize.width / intrinsicSize.height
     let width = min(maxWidth, intrinsicSize.width)
     let height = width / aspect
-    return CGSize(width: width, height: height)
+    let size = CGSize(width: width, height: height)
+    MarkdownImageDebug.log(
+      "sizeThatFits intrinsic url=\(MarkdownImageDebug.urlKey(url), privacy: .public) proposal=\(Int(proposal.width ?? -1)) intrinsic=\(MarkdownImageDebug.sizeKey(intrinsicSize), privacy: .public) result=\(MarkdownImageDebug.sizeKey(size), privacy: .public)"
+    )
+    return size
   }
 }
 
@@ -89,7 +98,11 @@ private struct URLBackedImageAttachmentView: View {
         }
       }
       .task(id: url) {
-        resolvedURL = await resolver.resolvedSourceURL(for: url)
+        let sourceURL = await resolver.resolvedSourceURL(for: url)
+        MarkdownImageDebug.log(
+          "resolvedSource url=\(MarkdownImageDebug.urlKey(url), privacy: .public) source=\(MarkdownImageDebug.urlKey(sourceURL ?? url), privacy: .public)"
+        )
+        resolvedURL = sourceURL
       }
       .task(id: resolvedURL) {
         guard let resolvedURL else {
@@ -323,5 +336,29 @@ private struct URLBackedImageAttachmentView: View {
       }
     }
     return nil
+  }
+}
+
+private enum MarkdownImageDebug {
+  private static let enabledKey = "io.ethan.pushgo.MarkdownImageDebug"
+  private static let logger = Logger(
+    subsystem: "com.github.gonzalezreal.Textual",
+    category: "markdownImageView"
+  )
+
+  static func log(_ message: Logger.Message) {
+    guard UserDefaults.standard.bool(forKey: enabledKey) else { return }
+    logger.debug(message)
+  }
+
+  static func urlKey(_ url: URL) -> String {
+    if !url.lastPathComponent.isEmpty {
+      return url.lastPathComponent
+    }
+    return String(url.absoluteString.suffix(80))
+  }
+
+  static func sizeKey(_ size: CGSize) -> String {
+    "\(Int(size.width))x\(Int(size.height))"
   }
 }
