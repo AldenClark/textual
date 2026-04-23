@@ -17,7 +17,6 @@ struct TextSelectionInteraction: ViewModifier {
     @Environment(TextSelectionCoordinator.self) private var coordinator: TextSelectionCoordinator?
 
     @State private var model = TextSelectionModel()
-    @State private var layoutSync = LayoutSync()
   #endif
 
   func body(content: Content) -> some View {
@@ -25,23 +24,13 @@ struct TextSelectionInteraction: ViewModifier {
       if textSelection.allowsSelection {
         content
           .overlayTextLayoutCollection { layoutCollection in
-            let layoutCollectionSnapshot = AnyTextLayoutCollection(layoutCollection)
-            let taskKey = StableLayoutTaskKey(layoutCollectionSnapshot)
             Color.clear
-              .id(taskKey)
-              .task {
-                layoutSync.schedule(
-                  taskKey: taskKey,
-                  newValue: layoutCollectionSnapshot,
-                  coordinator: coordinator,
-                  model: model
-                )
+              .onChange(of: AnyTextLayoutCollection(layoutCollection), initial: true) {
+                model.setCoordinator(coordinator)
+                model.setLayoutCollection(layoutCollection)
               }
           }
           .modifier(PlatformTextSelectionInteraction(model: model))
-          .onDisappear {
-            layoutSync.cancelPendingUpdate()
-          }
       } else {
         content
       }
@@ -50,74 +39,6 @@ struct TextSelectionInteraction: ViewModifier {
     #endif
   }
 }
-
-#if TEXTUAL_ENABLE_TEXT_SELECTION
-  @MainActor
-  private final class LayoutSync {
-    private var pendingTask: Task<Void, Never>?
-    private var latestRequestedLayoutCollection: AnyTextLayoutCollection?
-    private var latestRequestedTaskKey: StableLayoutTaskKey?
-
-    deinit {
-      pendingTask?.cancel()
-    }
-
-    func schedule(
-      taskKey: StableLayoutTaskKey,
-      newValue: AnyTextLayoutCollection,
-      coordinator: TextSelectionCoordinator?,
-      model: TextSelectionModel
-    ) {
-      guard latestRequestedTaskKey != taskKey else {
-        return
-      }
-      guard latestRequestedLayoutCollection != newValue else {
-        return
-      }
-
-      latestRequestedTaskKey = taskKey
-      latestRequestedLayoutCollection = newValue
-      pendingTask?.cancel()
-      pendingTask = Task { @MainActor [newValue] in
-        await Task.yield()
-        guard !Task.isCancelled else {
-          return
-        }
-        model.setCoordinator(coordinator)
-        model.setLayoutCollection(newValue)
-      }
-    }
-
-    func cancelPendingUpdate() {
-      pendingTask?.cancel()
-      pendingTask = nil
-    }
-  }
-
-  private struct StableLayoutTaskKey: Hashable, Sendable {
-    private let digest: Int
-
-    init(_ layoutCollection: AnyTextLayoutCollection) {
-      var hasher = Hasher()
-      hasher.combine(layoutCollection.layouts.count)
-
-      for layout in layoutCollection.layouts {
-        hasher.combine(layout.attributedString.length)
-        hasher.combine(Self.roundedPixel(layout.origin.x))
-        hasher.combine(Self.roundedPixel(layout.origin.y))
-        hasher.combine(Self.roundedPixel(layout.bounds.width))
-        hasher.combine(Self.roundedPixel(layout.bounds.height))
-      }
-
-      digest = hasher.finalize()
-    }
-
-    private static func roundedPixel(_ value: CGFloat) -> Int {
-      // Normalize to half-point granularity to suppress layout jitter churn.
-      Int((value * 2).rounded())
-    }
-  }
-#endif
 
 #if TEXTUAL_ENABLE_TEXT_SELECTION
   extension EnvironmentValues {

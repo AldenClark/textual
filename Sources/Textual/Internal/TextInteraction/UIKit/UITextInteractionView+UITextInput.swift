@@ -16,10 +16,7 @@
 
     func text(in range: UITextRange) -> String? {
       guard let rangeBox = range as? TextRangeBox else { return nil }
-      guard let clampedRange = model.clamped(rangeBox.wrappedValue) else {
-        return nil
-      }
-      return model.text(in: clampedRange)
+      return model.text(in: rangeBox.wrappedValue)
     }
 
     func replace(_ range: UITextRange, withText text: String) {
@@ -30,11 +27,7 @@
       get { model.selectedRange.map(TextRangeBox.init) }
       set {
         let rangeBox = newValue as? TextRangeBox
-        if let range = rangeBox?.wrappedValue {
-          model.selectedRange = model.clamped(range)
-        } else {
-          model.selectedRange = nil
-        }
+        model.selectedRange = rangeBox?.wrappedValue
         logger.debug("selectedTextRange = \(newValue)")
       }
     }
@@ -74,20 +67,13 @@
       else {
         return nil
       }
-      guard
-        let clampedFrom = model.clamped(from.wrappedValue),
-        let clampedTo = model.clamped(to.wrappedValue)
-      else {
-        return nil
-      }
-      return TextRangeBox(TextRange(from: clampedFrom, to: clampedTo))
+      return TextRangeBox(from: from, to: to)
     }
 
     func position(from position: UITextPosition, offset: Int) -> UITextPosition? {
       guard let positionBox = position as? TextPositionBox else { return nil }
-      guard let clampedPosition = model.clamped(positionBox.wrappedValue) else { return nil }
       return model.position(
-        from: clampedPosition,
+        from: positionBox.wrappedValue,
         offset: offset
       ).map(TextPositionBox.init)
     }
@@ -116,13 +102,7 @@
         let from = fromPosition as? TextPositionBox,
         let to = toPosition as? TextPositionBox
       else { return 0 }
-      guard
-        let clampedFrom = model.clamped(from.wrappedValue),
-        let clampedTo = model.clamped(to.wrappedValue)
-      else {
-        return 0
-      }
-      return model.offset(from: clampedFrom, to: clampedTo)
+      return model.offset(from: from.wrappedValue, to: to.wrappedValue)
     }
 
     var tokenizer: any UITextInputTokenizer {
@@ -159,20 +139,17 @@
 
     func firstRect(for range: UITextRange) -> CGRect {
       guard let rangeBox = range as? TextRangeBox else { return .zero }
-      guard let clampedRange = model.clamped(rangeBox.wrappedValue) else { return .zero }
-      return model.firstRect(for: clampedRange)
+      return model.firstRect(for: rangeBox.wrappedValue)
     }
 
     func caretRect(for position: UITextPosition) -> CGRect {
       guard let positionBox = position as? TextPositionBox else { return .zero }
-      guard let clampedPosition = model.clamped(positionBox.wrappedValue) else { return .zero }
-      return model.caretRect(for: clampedPosition)
+      return model.caretRect(for: positionBox.wrappedValue)
     }
 
     func selectionRects(for range: UITextRange) -> [UITextSelectionRect] {
       guard let rangeBox = range as? TextRangeBox else { return [] }
-      guard let clampedRange = model.clamped(rangeBox.wrappedValue) else { return [] }
-      return model.selectionRects(for: clampedRange)
+      return model.selectionRects(for: rangeBox.wrappedValue)
         .map(TextSelectionRectBox.init)
     }
 
@@ -182,10 +159,9 @@
 
     func closestPosition(to point: CGPoint, within range: UITextRange) -> UITextPosition? {
       guard let rangeBox = range as? TextRangeBox else { return nil }
-      guard let clampedRange = model.clamped(rangeBox.wrappedValue) else { return nil }
       return model.closestPosition(
         to: point,
-        within: clampedRange
+        within: rangeBox.wrappedValue
       ).map(TextPositionBox.init)
     }
 
@@ -203,8 +179,7 @@
 
     func attributedText(in range: UITextRange) -> NSAttributedString {
       guard let rangeBox = range as? TextRangeBox else { return .init() }
-      guard let clampedRange = model.clamped(rangeBox.wrappedValue) else { return .init() }
-      return model.attributedText(in: clampedRange)
+      return model.attributedText(in: rangeBox.wrappedValue)
     }
   }
 #endif

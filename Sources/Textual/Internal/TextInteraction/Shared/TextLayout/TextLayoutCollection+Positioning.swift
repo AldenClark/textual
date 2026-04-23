@@ -2,26 +2,6 @@
   import SwiftUI
 
   extension TextLayoutCollection {
-    func contains(_ position: TextPosition) -> Bool {
-      let indexPath = position.indexPath
-      guard layouts.indices.contains(indexPath.layout) else {
-        return false
-      }
-
-      let layout = layouts[indexPath.layout]
-      guard layout.lines.indices.contains(indexPath.line) else {
-        return false
-      }
-
-      let line = layout.lines[indexPath.line]
-      guard line.runs.indices.contains(indexPath.run) else {
-        return false
-      }
-
-      let run = line.runs[indexPath.run]
-      return run.slices.indices.contains(indexPath.runSlice)
-    }
-
     var startPosition: TextPosition {
       TextPosition(
         indexPath: .init(runSlice: 0, run: 0, line: 0, layout: 0),
@@ -80,109 +60,33 @@
     }
 
     func characterIndex(at position: TextPosition) -> Int {
-      if contains(position) {
-        let base = layouts.prefix(position.indexPath.layout)
-          .map(\.attributedString.length)
-          .reduce(0, +)
-        return base + localCharacterIndex(at: position)
-      }
-
-      guard layouts.indices.contains(position.indexPath.layout) else {
-        return position.affinity == .upstream ? stringLength : 0
-      }
-
       let base = layouts.prefix(position.indexPath.layout)
         .map(\.attributedString.length)
         .reduce(0, +)
-      let localBoundary =
-        position.affinity == .upstream
-        ? layouts[position.indexPath.layout].attributedString.length
-        : 0
-      return base + localBoundary
-    }
-
-    func clamped(_ position: TextPosition) -> TextPosition? {
-      guard !layouts.isEmpty else {
-        return nil
-      }
-
-      if contains(position) {
-        return position
-      }
-
-      let targetIndex = characterIndex(at: position)
-
-      if targetIndex <= 0 {
-        return startPosition
-      }
-
-      if targetIndex >= stringLength {
-        return endPosition
-      }
-
-      return self.position(from: startPosition, offset: targetIndex)
+      return base + localCharacterIndex(at: position)
     }
 
     func localCharacterIndex(at position: TextPosition) -> Int {
-      guard let range = localCharacterRange(at: position.indexPath) else {
-        let layoutLength =
-          layouts.indices.contains(position.indexPath.layout)
-          ? layouts[position.indexPath.layout].attributedString.length
-          : 0
-        return position.affinity == .upstream ? layoutLength : 0
-      }
+      let range = localCharacterRange(at: position.indexPath)
       switch position.affinity {
       case .downstream: return range.lowerBound
       case .upstream: return range.upperBound
       }
     }
 
-    func localCharacterRange(at indexPath: IndexPath) -> Range<Int>? {
-      guard layouts.indices.contains(indexPath.layout) else {
-        return nil
-      }
-
-      let layout = layouts[indexPath.layout]
-      guard layout.lines.indices.contains(indexPath.line) else {
-        return nil
-      }
-
-      let line = layout.lines[indexPath.line]
-      guard line.runs.indices.contains(indexPath.run) else {
-        return nil
-      }
-
-      let run = line.runs[indexPath.run]
-      guard run.slices.indices.contains(indexPath.runSlice) else {
-        return nil
-      }
-
-      return run.slices[indexPath.runSlice].characterRange
+    func localCharacterRange(at indexPath: IndexPath) -> Range<Int> {
+      let line = layouts[indexPath.layout].lines[indexPath.line]
+      return line.runs[indexPath.run]
+        .slices[indexPath.runSlice]
+        .characterRange
     }
 
     func layoutDirection(at indexPath: IndexPath) -> LayoutDirection {
-      guard layouts.indices.contains(indexPath.layout) else {
-        return .localeBased()
-      }
-
-      let layout = layouts[indexPath.layout]
-      guard layout.lines.indices.contains(indexPath.line) else {
-        return .localeBased()
-      }
-
-      let line = layout.lines[indexPath.line]
-      guard line.runs.indices.contains(indexPath.run) else {
-        return .localeBased()
-      }
-
+      let line = layouts[indexPath.layout].lines[indexPath.line]
       return line.runs[indexPath.run].layoutDirection
     }
 
     func position(at layoutIndex: Int, localCharacterIndex: Int) -> TextPosition? {
-      guard layouts.indices.contains(layoutIndex) else {
-        return nil
-      }
-
       guard localCharacterIndex > 0 else {
         return TextPosition(
           indexPath: .init(layout: layoutIndex),

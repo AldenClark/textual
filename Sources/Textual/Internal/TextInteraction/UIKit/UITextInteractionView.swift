@@ -95,8 +95,6 @@
       }
 
       let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
-      tapGesture.cancelsTouchesInView = false
-      tapGesture.delegate = self
       addGestureRecognizer(tapGesture)
 
       selectionInteraction.textInput = self
@@ -107,17 +105,6 @@
       }
 
       addInteraction(selectionInteraction)
-    }
-
-    private func enclosingScrollView() -> UIScrollView? {
-      var view = superview
-      while let current = view {
-        if let scrollView = current as? UIScrollView {
-          return scrollView
-        }
-        view = current.superview
-      }
-      return nil
     }
 
     @objc private func handleTap(_ gesture: UITapGestureRecognizer) {
@@ -182,7 +169,9 @@
       return nil
     }
 
-    private func topMostViewController(startingAt viewController: UIViewController) -> UIViewController? {
+    private func topMostViewController(startingAt viewController: UIViewController)
+      -> UIViewController?
+    {
       if let tabBarController = viewController as? UITabBarController,
         let selectedViewController = tabBarController.selectedViewController
       {
@@ -216,18 +205,6 @@
 
     func interactionDidEnd(_ interaction: UITextInteraction) {
       logger.debug("interactionDidEnd")
-    }
-  }
-
-  extension UITextInteractionView: UIGestureRecognizerDelegate {
-    func gestureRecognizer(
-      _ gestureRecognizer: UIGestureRecognizer,
-      shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
-    ) -> Bool {
-      guard let scrollView = enclosingScrollView() else {
-        return false
-      }
-      return otherGestureRecognizer === scrollView.panGestureRecognizer
     }
   }
 
