@@ -44,9 +44,14 @@ extension TextFragment {
 
     @ObservationIgnored private let content: Content
     @ObservationIgnored private let cache: NSCache<KeyBox<[AttachmentKey: HashableCGSize]>, Box<Text>>
+    @ObservationIgnored private var lastAttachmentSizes: [AttachmentKey: HashableCGSize]
+    @ObservationIgnored private var pendingSize: CGSize?
+    @ObservationIgnored private var pendingEnvironment: TextEnvironmentValues?
+    @ObservationIgnored private var hasScheduledSizeUpdate = false
 
     init(_ content: Content, environment: TextEnvironmentValues) {
       let attachmentSizes = content.attachmentSizes(for: .unspecified, in: environment)
+      let hashableAttachmentSizes = attachmentSizes.mapValues(HashableCGSize.init)
 
       self.text = Text(
         attributedString: content,
@@ -56,13 +61,48 @@ extension TextFragment {
       self.content = content
       self.cache = NSCache()
       self.cache.countLimit = 10
+      self.lastAttachmentSizes = hashableAttachmentSizes
 
-      self.cache.setObject(Box(self.text), forKey: KeyBox(attachmentSizes.mapValues(HashableCGSize.init)))
+      self.cache.setObject(Box(self.text), forKey: KeyBox(hashableAttachmentSizes))
     }
 
     func sizeChanged(_ size: CGSize, environment: TextEnvironmentValues) {
+      pendingSize = size
+      pendingEnvironment = environment
+
+      guard !hasScheduledSizeUpdate else {
+        return
+      }
+      hasScheduledSizeUpdate = true
+
+      Task { @MainActor [weak self] in
+        await Task.yield()
+        guard let self else { return }
+        self.hasScheduledSizeUpdate = false
+
+        guard
+          let pendingSize = self.pendingSize,
+          let pendingEnvironment = self.pendingEnvironment
+        else {
+          return
+        }
+        self.pendingSize = nil
+        self.pendingEnvironment = nil
+
+        self.applySizeChange(pendingSize, environment: pendingEnvironment)
+      }
+    }
+
+    private func applySizeChange(_ size: CGSize, environment: TextEnvironmentValues) {
       let attachmentSizes = content.attachmentSizes(for: .init(size), in: environment)
-      let cacheKey = KeyBox(attachmentSizes.mapValues(HashableCGSize.init))
+      let hashableAttachmentSizes = attachmentSizes.mapValues(HashableCGSize.init)
+
+      guard hashableAttachmentSizes != lastAttachmentSizes else {
+        return
+      }
+      lastAttachmentSizes = hashableAttachmentSizes
+
+      let cacheKey = KeyBox(hashableAttachmentSizes)
 
       if let text = cache.object(forKey: cacheKey) {
         self.text = text.wrappedValue
