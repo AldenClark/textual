@@ -16,7 +16,10 @@
 
     func text(in range: UITextRange) -> String? {
       guard let rangeBox = range as? TextRangeBox else { return nil }
-      return model.text(in: rangeBox.wrappedValue)
+      guard let clampedRange = model.clamped(rangeBox.wrappedValue) else {
+        return nil
+      }
+      return model.text(in: clampedRange)
     }
 
     func replace(_ range: UITextRange, withText text: String) {
@@ -27,7 +30,11 @@
       get { model.selectedRange.map(TextRangeBox.init) }
       set {
         let rangeBox = newValue as? TextRangeBox
-        model.selectedRange = rangeBox?.wrappedValue
+        if let range = rangeBox?.wrappedValue {
+          model.selectedRange = model.clamped(range)
+        } else {
+          model.selectedRange = nil
+        }
         logger.debug("selectedTextRange = \(newValue)")
       }
     }
@@ -67,13 +74,20 @@
       else {
         return nil
       }
-      return TextRangeBox(from: from, to: to)
+      guard
+        let clampedFrom = model.clamped(from.wrappedValue),
+        let clampedTo = model.clamped(to.wrappedValue)
+      else {
+        return nil
+      }
+      return TextRangeBox(TextRange(from: clampedFrom, to: clampedTo))
     }
 
     func position(from position: UITextPosition, offset: Int) -> UITextPosition? {
       guard let positionBox = position as? TextPositionBox else { return nil }
+      guard let clampedPosition = model.clamped(positionBox.wrappedValue) else { return nil }
       return model.position(
-        from: positionBox.wrappedValue,
+        from: clampedPosition,
         offset: offset
       ).map(TextPositionBox.init)
     }
@@ -102,7 +116,13 @@
         let from = fromPosition as? TextPositionBox,
         let to = toPosition as? TextPositionBox
       else { return 0 }
-      return model.offset(from: from.wrappedValue, to: to.wrappedValue)
+      guard
+        let clampedFrom = model.clamped(from.wrappedValue),
+        let clampedTo = model.clamped(to.wrappedValue)
+      else {
+        return 0
+      }
+      return model.offset(from: clampedFrom, to: clampedTo)
     }
 
     var tokenizer: any UITextInputTokenizer {
@@ -139,17 +159,20 @@
 
     func firstRect(for range: UITextRange) -> CGRect {
       guard let rangeBox = range as? TextRangeBox else { return .zero }
-      return model.firstRect(for: rangeBox.wrappedValue)
+      guard let clampedRange = model.clamped(rangeBox.wrappedValue) else { return .zero }
+      return model.firstRect(for: clampedRange)
     }
 
     func caretRect(for position: UITextPosition) -> CGRect {
       guard let positionBox = position as? TextPositionBox else { return .zero }
-      return model.caretRect(for: positionBox.wrappedValue)
+      guard let clampedPosition = model.clamped(positionBox.wrappedValue) else { return .zero }
+      return model.caretRect(for: clampedPosition)
     }
 
     func selectionRects(for range: UITextRange) -> [UITextSelectionRect] {
       guard let rangeBox = range as? TextRangeBox else { return [] }
-      return model.selectionRects(for: rangeBox.wrappedValue)
+      guard let clampedRange = model.clamped(rangeBox.wrappedValue) else { return [] }
+      return model.selectionRects(for: clampedRange)
         .map(TextSelectionRectBox.init)
     }
 
@@ -159,9 +182,10 @@
 
     func closestPosition(to point: CGPoint, within range: UITextRange) -> UITextPosition? {
       guard let rangeBox = range as? TextRangeBox else { return nil }
+      guard let clampedRange = model.clamped(rangeBox.wrappedValue) else { return nil }
       return model.closestPosition(
         to: point,
-        within: rangeBox.wrappedValue
+        within: clampedRange
       ).map(TextPositionBox.init)
     }
 
@@ -179,7 +203,8 @@
 
     func attributedText(in range: UITextRange) -> NSAttributedString {
       guard let rangeBox = range as? TextRangeBox else { return .init() }
-      return model.attributedText(in: rangeBox.wrappedValue)
+      guard let clampedRange = model.clamped(rangeBox.wrappedValue) else { return .init() }
+      return model.attributedText(in: clampedRange)
     }
   }
 #endif

@@ -46,15 +46,25 @@
       let rawEnd = rangeBox.wrappedEnd
       let rawPosition = positionBox.wrappedValue
 
-      guard let blockRange = model.blockRange(for: rawPosition) else {
+      guard
+        let clampedPosition = model.clamped(rawPosition),
+        let blockRange = model.blockRange(for: clampedPosition)
+      else {
         return range
       }
 
+      let clampedStart = model.clamped(rawStart) ?? blockRange.start
+      let clampedEnd = model.clamped(rawEnd) ?? blockRange.end
+      let rangeStart = max(clampedStart, blockRange.start)
+      let rangeEnd = min(clampedEnd, blockRange.end)
+
       // Clamp the range to stay within the layout boundaries
-      let clampedRange = TextRange(
-        start: max(rawStart, blockRange.start),
-        end: min(rawEnd, blockRange.end)
-      )
+      let clampedRange =
+        if rangeStart <= rangeEnd {
+          TextRange(start: rangeStart, end: rangeEnd)
+        } else {
+          TextRange(start: clampedPosition, end: clampedPosition)
+        }
 
       return TextRangeBox(clampedRange)
     }
@@ -71,7 +81,9 @@
         return _tokenizer.isPosition(position, atBoundary: granularity, inDirection: direction)
       }
 
-      let rawPosition = positionBox.wrappedValue
+      guard let rawPosition = model.clamped(positionBox.wrappedValue) else {
+        return _tokenizer.isPosition(position, atBoundary: granularity, inDirection: direction)
+      }
 
       if model.isPositionAtBlockBoundary(rawPosition) {
         return true
@@ -104,8 +116,12 @@
       guard let positionBox = position as? TextPositionBox else {
         return boundaryPosition
       }
-      let rawStart = positionBox.wrappedValue
-      let rawEnd = boundaryPositionBox.wrappedValue
+      guard
+        let rawStart = model.clamped(positionBox.wrappedValue),
+        let rawEnd = model.clamped(boundaryPositionBox.wrappedValue)
+      else {
+        return boundaryPosition
+      }
 
       if rawStart.indexPath.layout != rawEnd.indexPath.layout {
         // If they're in different layouts, we need to clamp to the layout boundary
@@ -145,7 +161,9 @@
         return _tokenizer.isPosition(position, withinTextUnit: granularity, inDirection: direction)
       }
 
-      let rawPosition = positionBox.wrappedValue
+      guard let rawPosition = model.clamped(positionBox.wrappedValue) else {
+        return _tokenizer.isPosition(position, withinTextUnit: granularity, inDirection: direction)
+      }
 
       // If we're at a block boundary, extending in the direction
       // that crosses the boundary would leave the text unit

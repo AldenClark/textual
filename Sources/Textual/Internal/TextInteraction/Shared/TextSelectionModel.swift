@@ -114,6 +114,29 @@
       layoutCollection.characterIndex(at: to) - layoutCollection.characterIndex(at: from)
     }
 
+    func contains(_ position: TextPosition) -> Bool {
+      layoutCollection.contains(position)
+    }
+
+    func contains(_ range: TextRange) -> Bool {
+      contains(range.start) && contains(range.end)
+    }
+
+    func clamped(_ position: TextPosition) -> TextPosition? {
+      layoutCollection.clamped(position)
+    }
+
+    func clamped(_ range: TextRange) -> TextRange? {
+      guard
+        let start = clamped(range.start),
+        let end = clamped(range.end)
+      else {
+        return nil
+      }
+
+      return TextRange(from: start, to: end)
+    }
+
     func firstRect(for range: TextRange) -> CGRect {
       layoutCollection.firstRect(for: range)
     }
