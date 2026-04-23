@@ -91,10 +91,11 @@ public struct AdaptiveURLImageAttachmentLoader: AttachmentLoader {
 
 private enum MarkdownImageDebug {
   private static let enabledKey = "io.ethan.pushgo.MarkdownImageDebug"
+  private static let fileURL = URL(fileURLWithPath: "/tmp/pushgo_markdown_image_debug.log")
 
   static func log(_ message: String) {
     guard UserDefaults.standard.bool(forKey: enabledKey) else { return }
-    NSLog("[TextualMarkdownImage] %@", message)
+    append("[TextualMarkdownImage] \(message)")
   }
 
   static func urlKey(_ url: URL) -> String {
@@ -107,6 +108,19 @@ private enum MarkdownImageDebug {
   static func sizeKey(_ size: CGSize?) -> String {
     guard let size else { return "nil" }
     return "\(Int(size.width))x\(Int(size.height))"
+  }
+
+  private static func append(_ line: String) {
+    let entry = "\(ISO8601DateFormatter().string(from: Date())) \(line)\n"
+    let data = Data(entry.utf8)
+    if FileManager.default.fileExists(atPath: fileURL.path) == false {
+      FileManager.default.createFile(atPath: fileURL.path, contents: data)
+      return
+    }
+    guard let handle = try? FileHandle(forWritingTo: fileURL) else { return }
+    defer { try? handle.close() }
+    try? handle.seekToEnd()
+    try? handle.write(contentsOf: data)
   }
 }
 
