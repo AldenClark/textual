@@ -51,7 +51,7 @@ public struct AdaptiveURLImageAttachmentLoader: AttachmentLoader {
     case .sdWebImage:
       let intrinsicSize = syncSizeProvider?(imageURL)
       MarkdownImageDebug.log(
-        "provisional url=\(MarkdownImageDebug.urlKey(imageURL), privacy: .public) size=\(MarkdownImageDebug.sizeKey(intrinsicSize), privacy: .public)"
+        "provisional url=\(MarkdownImageDebug.urlKey(imageURL)) size=\(MarkdownImageDebug.sizeKey(intrinsicSize))"
       )
       return .urlBacked(
         URLBackedImageAttachment(
@@ -77,7 +77,7 @@ public struct AdaptiveURLImageAttachmentLoader: AttachmentLoader {
     case .sdWebImage:
       let intrinsicSize = await sizeProvider?(imageURL)
       MarkdownImageDebug.log(
-        "resolved url=\(MarkdownImageDebug.urlKey(imageURL), privacy: .public) size=\(MarkdownImageDebug.sizeKey(intrinsicSize), privacy: .public)"
+        "resolved url=\(MarkdownImageDebug.urlKey(imageURL)) size=\(MarkdownImageDebug.sizeKey(intrinsicSize))"
       )
       return .urlBacked(
         URLBackedImageAttachment(
@@ -97,9 +97,9 @@ private enum MarkdownImageDebug {
     category: "markdownImage"
   )
 
-  static func log(_ message: Logger.Message) {
+  static func log(_ message: String) {
     guard UserDefaults.standard.bool(forKey: enabledKey) else { return }
-    logger.debug(message)
+    logger.debug("\(message, privacy: .public)")
   }
 
   static func urlKey(_ url: URL) -> String {

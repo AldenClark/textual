@@ -38,7 +38,7 @@ struct URLBackedImageAttachment: Attachment {
       let defaultWidth = min(maxWidth, 240)
       let size = CGSize(width: defaultWidth, height: defaultWidth * 9.0 / 16.0)
       MarkdownImageDebug.log(
-        "sizeThatFits fallback url=\(MarkdownImageDebug.urlKey(url), privacy: .public) proposal=\(Int(proposal.width ?? -1)) result=\(MarkdownImageDebug.sizeKey(size), privacy: .public)"
+        "sizeThatFits fallback url=\(MarkdownImageDebug.urlKey(url)) proposal=\(Int(proposal.width ?? -1)) result=\(MarkdownImageDebug.sizeKey(size))"
       )
       return size
     }
@@ -48,7 +48,7 @@ struct URLBackedImageAttachment: Attachment {
     let height = width / aspect
     let size = CGSize(width: width, height: height)
     MarkdownImageDebug.log(
-      "sizeThatFits intrinsic url=\(MarkdownImageDebug.urlKey(url), privacy: .public) proposal=\(Int(proposal.width ?? -1)) intrinsic=\(MarkdownImageDebug.sizeKey(intrinsicSize), privacy: .public) result=\(MarkdownImageDebug.sizeKey(size), privacy: .public)"
+      "sizeThatFits intrinsic url=\(MarkdownImageDebug.urlKey(url)) proposal=\(Int(proposal.width ?? -1)) intrinsic=\(MarkdownImageDebug.sizeKey(intrinsicSize)) result=\(MarkdownImageDebug.sizeKey(size))"
     )
     return size
   }
@@ -100,7 +100,7 @@ private struct URLBackedImageAttachmentView: View {
       .task(id: url) {
         let sourceURL = await resolver.resolvedSourceURL(for: url)
         MarkdownImageDebug.log(
-          "resolvedSource url=\(MarkdownImageDebug.urlKey(url), privacy: .public) source=\(MarkdownImageDebug.urlKey(sourceURL ?? url), privacy: .public)"
+          "resolvedSource url=\(MarkdownImageDebug.urlKey(url)) source=\(MarkdownImageDebug.urlKey(sourceURL ?? url))"
         )
         resolvedURL = sourceURL
       }
@@ -346,9 +346,9 @@ private enum MarkdownImageDebug {
     category: "markdownImageView"
   )
 
-  static func log(_ message: Logger.Message) {
+  static func log(_ message: String) {
     guard UserDefaults.standard.bool(forKey: enabledKey) else { return }
-    logger.debug(message)
+    logger.debug("\(message, privacy: .public)")
   }
 
   static func urlKey(_ url: URL) -> String {
