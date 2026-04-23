@@ -43,6 +43,16 @@ import SwiftUI
 public protocol AttachmentLoader: Sendable {
   associatedtype Attachment: Textual.Attachment
 
+  /// Returns an attachment that can be used before async resolution completes.
+  ///
+  /// Use this to avoid flashing raw fallback text for attachment runs while the final attachment
+  /// is still loading.
+  func provisionalAttachment(
+    for url: URL,
+    text: String,
+    environment: ColorEnvironmentValues
+  ) -> Attachment?
+
   /// Loads an attachment for the given URL.
   ///
   /// - Parameters:
@@ -54,6 +64,16 @@ public protocol AttachmentLoader: Sendable {
     text: String,
     environment: ColorEnvironmentValues
   ) async throws -> Attachment
+}
+
+extension AttachmentLoader {
+  public func provisionalAttachment(
+    for _: URL,
+    text _: String,
+    environment _: ColorEnvironmentValues
+  ) -> Attachment? {
+    nil
+  }
 }
 
 extension EnvironmentValues {

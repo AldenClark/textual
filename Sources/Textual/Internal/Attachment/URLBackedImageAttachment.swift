@@ -64,7 +64,7 @@ private struct URLBackedImageAttachmentView: View {
       if let resolvedURL {
         contentView(for: resolvedURL)
       } else {
-        Color.clear
+        placeholderView
       }
     }
       .contentShape(Rectangle())
@@ -125,7 +125,6 @@ private struct URLBackedImageAttachmentView: View {
           options: [.matchAnimatedImageClass, .fromLoaderOnly],
           isAnimating: .constant(true)
         )
-          .indicator(.activity)
           .customLoopCount(1)
           .resizable()
           .scaledToFit()
@@ -140,9 +139,9 @@ private struct URLBackedImageAttachmentView: View {
             .resizable()
             .scaledToFit()
         } placeholder: {
-          Color.clear
+          placeholderView
         }
-        .indicator(.activity)
+        .transition(.fade(duration: 0.18))
       }
     #else
       AsyncImage(url: sourceURL) { phase in
@@ -151,15 +150,21 @@ private struct URLBackedImageAttachmentView: View {
           image
             .resizable()
             .scaledToFit()
+            .transition(.opacity.animation(.easeOut(duration: 0.18)))
         case .empty:
-          Color.clear
+          placeholderView
         case .failure:
-          Color.clear
+          placeholderView
         @unknown default:
-          Color.clear
+          placeholderView
         }
       }
     #endif
+  }
+
+  private var placeholderView: some View {
+    Rectangle()
+      .fill(Color.secondary.opacity(0.12))
   }
 
   private var attachmentID: String {

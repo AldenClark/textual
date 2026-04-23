@@ -31,7 +31,14 @@ struct WithAttachments<Content: View>: View {
   }
 
   var body: some View {
-    content(model.resolvedAttributedString ?? attributedString)
+    content(
+      model.displayAttributedString(
+        from: attributedString,
+        imageAttachmentLoader: imageAttachmentLoader,
+        emojiAttachmentLoader: emojiAttachmentLoader,
+        environment: colorEnvironment
+      )
+    )
       .task(id: attributedString) {
         await model.resolveAttachments(
           in: attributedString,
@@ -46,6 +53,44 @@ struct WithAttachments<Content: View>: View {
 extension WithAttachments {
   @MainActor @Observable final class Model {
     var resolvedAttributedString: AttributedString?
+
+    func displayAttributedString(
+      from attributedString: AttributedString,
+      imageAttachmentLoader: any AttachmentLoader,
+      emojiAttachmentLoader: any AttachmentLoader,
+      environment: ColorEnvironmentValues
+    ) -> AttributedString {
+      if let resolvedAttributedString {
+        return resolvedAttributedString
+      }
+
+      var provisionalAttributedString = attributedString
+      var hasProvisionalAttachments = false
+
+      for run in attributedString.runs {
+        if let imageURL = run.imageURL,
+           let attachment = imageAttachmentLoader.provisionalAttachment(
+             for: imageURL,
+             text: String(attributedString[run.range].characters[...]),
+             environment: environment
+           )
+        {
+          provisionalAttributedString[run.range].textual.attachment = AnyAttachment(attachment)
+          hasProvisionalAttachments = true
+        } else if let emojiURL = run.textual.emojiURL,
+                  let attachment = emojiAttachmentLoader.provisionalAttachment(
+                    for: emojiURL,
+                    text: String(attributedString[run.range].characters[...]),
+                    environment: environment
+                  )
+        {
+          provisionalAttributedString[run.range].textual.attachment = AnyAttachment(attachment)
+          hasProvisionalAttachments = true
+        }
+      }
+
+      return hasProvisionalAttachments ? provisionalAttributedString : attributedString
+    }
 
     func resolveAttachments(
       in attributedString: AttributedString,

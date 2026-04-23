@@ -1,6 +1,7 @@
 import SwiftUI
 
 public typealias URLImageAttachmentSizeProvider = @Sendable (URL) async -> CGSize?
+public typealias URLImageAttachmentSyncSizeProvider = @Sendable (URL) -> CGSize?
 
 /// Backend mode for URL-based image attachment rendering.
 public enum URLImageAttachmentBackend: String, CaseIterable, Sendable {
@@ -20,16 +21,41 @@ public struct AdaptiveURLImageAttachmentLoader: AttachmentLoader {
 
   private let baseURL: URL?
   private let sizeProvider: URLImageAttachmentSizeProvider?
+  private let syncSizeProvider: URLImageAttachmentSyncSizeProvider?
   public let backend: URLImageAttachmentBackend
 
   public init(
     relativeTo baseURL: URL? = nil,
     backend: URLImageAttachmentBackend = .textualNative,
-    sizeProvider: URLImageAttachmentSizeProvider? = nil
+    sizeProvider: URLImageAttachmentSizeProvider? = nil,
+    syncSizeProvider: URLImageAttachmentSyncSizeProvider? = nil
   ) {
     self.baseURL = baseURL
     self.backend = backend
     self.sizeProvider = sizeProvider
+    self.syncSizeProvider = syncSizeProvider
+  }
+
+  public func provisionalAttachment(
+    for url: URL,
+    text: String,
+    environment _: ColorEnvironmentValues
+  ) -> AdaptiveImageAttachment? {
+    let imageURL = URL(string: url.absoluteString, relativeTo: baseURL) ?? url
+
+    switch backend {
+    case .textualNative:
+      return nil
+    case .sdWebImage:
+      let intrinsicSize = syncSizeProvider?(imageURL)
+      return .urlBacked(
+        URLBackedImageAttachment(
+          url: imageURL,
+          text: text,
+          intrinsicSize: intrinsicSize
+        )
+      )
+    }
   }
 
   public func attachment(
@@ -65,9 +91,15 @@ extension AttachmentLoader where Self == AdaptiveURLImageAttachmentLoader {
   public static func adaptiveImage(
     relativeTo baseURL: URL? = nil,
     backend: URLImageAttachmentBackend = .textualNative,
-    sizeProvider: URLImageAttachmentSizeProvider? = nil
+    sizeProvider: URLImageAttachmentSizeProvider? = nil,
+    syncSizeProvider: URLImageAttachmentSyncSizeProvider? = nil
   ) -> Self {
-    .init(relativeTo: baseURL, backend: backend, sizeProvider: sizeProvider)
+    .init(
+      relativeTo: baseURL,
+      backend: backend,
+      sizeProvider: sizeProvider,
+      syncSizeProvider: syncSizeProvider
+    )
   }
 }
 
