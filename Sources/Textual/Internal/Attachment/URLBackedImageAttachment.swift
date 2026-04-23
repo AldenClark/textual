@@ -2,7 +2,6 @@ import SwiftUI
 import Combine
 import ImageIO
 import Foundation
-import OSLog
 
 #if canImport(SDWebImageSwiftUI)
   import SDWebImageSwiftUI
@@ -341,14 +340,10 @@ private struct URLBackedImageAttachmentView: View {
 
 private enum MarkdownImageDebug {
   private static let enabledKey = "io.ethan.pushgo.MarkdownImageDebug"
-  private static let logger = Logger(
-    subsystem: "com.github.gonzalezreal.Textual",
-    category: "markdownImageView"
-  )
 
   static func log(_ message: String) {
     guard UserDefaults.standard.bool(forKey: enabledKey) else { return }
-    logger.debug("\(message, privacy: .public)")
+    NSLog("[TextualMarkdownImageView] %@", message)
   }
 
   static func urlKey(_ url: URL) -> String {

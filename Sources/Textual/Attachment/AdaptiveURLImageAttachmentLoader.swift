@@ -1,5 +1,4 @@
 import Foundation
-import OSLog
 import SwiftUI
 
 public typealias URLImageAttachmentSizeProvider = @Sendable (URL) async -> CGSize?
@@ -92,14 +91,10 @@ public struct AdaptiveURLImageAttachmentLoader: AttachmentLoader {
 
 private enum MarkdownImageDebug {
   private static let enabledKey = "io.ethan.pushgo.MarkdownImageDebug"
-  private static let logger = Logger(
-    subsystem: "com.github.gonzalezreal.Textual",
-    category: "markdownImage"
-  )
 
   static func log(_ message: String) {
     guard UserDefaults.standard.bool(forKey: enabledKey) else { return }
-    logger.debug("\(message, privacy: .public)")
+    NSLog("[TextualMarkdownImage] %@", message)
   }
 
   static func urlKey(_ url: URL) -> String {
