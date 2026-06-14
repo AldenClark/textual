@@ -28,8 +28,7 @@ struct TextSelectionInteraction: ViewModifier {
             let layoutCollectionSnapshot = AnyTextLayoutCollection(layoutCollection)
             let updateKey = StableLayoutUpdateKey(layoutCollectionSnapshot)
             Color.clear
-              .id(updateKey)
-              .task {
+              .onChange(of: updateKey, initial: true) { _, _ in
                 modelUpdater.schedule(
                   taskKey: updateKey,
                   model: model,

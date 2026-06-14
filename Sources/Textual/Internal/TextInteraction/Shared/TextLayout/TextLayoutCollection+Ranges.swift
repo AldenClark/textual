@@ -9,7 +9,9 @@
       guard layouts.indices.contains(position.indexPath.layout) else {
         return nil
       }
-      let layout = layouts[position.indexPath.layout]
+      guard let layout = layout(at: position.indexPath.layout) else {
+        return nil
+      }
       let characterIndex = localCharacterIndex(at: position)
 
       guard
@@ -32,7 +34,9 @@
         return nil
       }
 
-      let layout = layouts[position.indexPath.layout]
+      guard let layout = layout(at: position.indexPath.layout) else {
+        return nil
+      }
 
       guard
         let line = layout.lines.last,
@@ -63,7 +67,9 @@
         return nil
       }
 
-      let layout = layouts[layoutIndex]
+      guard let layout = layout(at: layoutIndex) else {
+        return nil
+      }
 
       guard
         let lastLine = layout.lines.last,

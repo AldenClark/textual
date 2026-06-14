@@ -12,15 +12,17 @@
   // vertical gaps between lines so selection highlights appear as a single block.
 
   extension TextLayoutCollection {
-    func selectionRects(for range: TextRange, layout: Text.Layout) -> [TextSelectionRect] {
+    func selectionRects(for range: TextRange, layout targetLayout: Text.Layout) -> [TextSelectionRect] {
       guard
-        let layoutIndex = self.index(of: layout),
+        let layoutIndex = self.index(of: targetLayout),
         let clampedRange = self.clampRange(range, layoutIndex: layoutIndex)
       else {
         return []
       }
 
-      let origin = layouts[layoutIndex].origin
+      guard let origin = layout(at: layoutIndex)?.origin else {
+        return []
+      }
 
       return self.selectionRects(for: clampedRange).map { rect in
         rect.offsetBy(dx: -origin.x, dy: -origin.y)

@@ -39,24 +39,25 @@
       // Map target to layout and local character index
 
       var localTarget = target
-      var layout = 0
+      var layoutIndex = 0
 
-      while layout < layouts.count {
-        let length = layouts[layout].attributedString.length
+      while layoutIndex < layouts.count {
+        guard let currentLayout = layout(at: layoutIndex) else { return nil }
+        let length = currentLayout.attributedString.length
 
         guard localTarget > length else {
           break
         }
 
         localTarget -= length
-        layout += 1
+        layoutIndex += 1
       }
 
-      guard layout < layouts.count else {
+      guard layoutIndex < layouts.count else {
         return endPosition
       }
 
-      return self.position(at: layout, localCharacterIndex: localTarget)
+      return self.position(at: layoutIndex, localCharacterIndex: localTarget)
     }
 
     func characterIndex(at position: TextPosition) -> Int {
@@ -75,18 +76,16 @@
     }
 
     func localCharacterRange(at indexPath: IndexPath) -> Range<Int> {
-      let line = layouts[indexPath.layout].lines[indexPath.line]
-      return line.runs[indexPath.run]
-        .slices[indexPath.runSlice]
-        .characterRange
+      runSlice(at: indexPath)?.characterRange ?? 0..<0
     }
 
     func layoutDirection(at indexPath: IndexPath) -> LayoutDirection {
-      let line = layouts[indexPath.layout].lines[indexPath.line]
-      return line.runs[indexPath.run].layoutDirection
+      run(at: indexPath)?.layoutDirection ?? .localeBased()
     }
 
     func position(at layoutIndex: Int, localCharacterIndex: Int) -> TextPosition? {
+      guard let layout = layout(at: layoutIndex) else { return nil }
+
       guard localCharacterIndex > 0 else {
         return TextPosition(
           indexPath: .init(layout: layoutIndex),
@@ -94,7 +93,6 @@
         )
       }
 
-      let layout = layouts[layoutIndex]
       let stringLength = layout.attributedString.length
 
       guard localCharacterIndex <= stringLength else {
@@ -166,7 +164,7 @@
       guard layouts.indices.contains(position.indexPath.layout) else {
         return nil
       }
-      let layout = layouts[position.indexPath.layout]
+      guard let layout = layout(at: position.indexPath.layout) else { return nil }
       let characterIndex = localCharacterIndex(at: position)
       let nextCharacterIndex = layout.attributedString.nextWord(from: characterIndex)
 
@@ -195,9 +193,9 @@
       guard layouts.indices.contains(position.indexPath.layout) else {
         return nil
       }
-      let layout = layouts[position.indexPath.layout]
+      guard let currentLayout = layout(at: position.indexPath.layout) else { return nil }
       let characterIndex = localCharacterIndex(at: position)
-      let previousCharacterIndex = layout.attributedString.previousWord(from: characterIndex)
+      let previousCharacterIndex = currentLayout.attributedString.previousWord(from: characterIndex)
 
       if previousCharacterIndex == 0 && characterIndex == 0 {
         // Try previous layout
@@ -205,7 +203,9 @@
           return startPosition
         }
 
-        let previousLayout = layouts[position.indexPath.layout - 1]
+        guard let previousLayout = layout(at: position.indexPath.layout - 1) else {
+          return nil
+        }
 
         guard
           let position = self.position(
@@ -251,10 +251,12 @@
         return nil
       }
 
-      let layout = layouts[position.indexPath.layout]
+      guard let currentLayout = layout(at: position.indexPath.layout) else {
+        return nil
+      }
 
       guard
-        let line = layout.lines.last,
+        let line = currentLayout.lines.last,
         let run = line.runs.last
       else {
         return nil
@@ -264,7 +266,7 @@
         indexPath: .init(
           runSlice: run.slices.endIndex - 1,
           run: line.runs.endIndex - 1,
-          line: layout.lines.endIndex - 1,
+          line: currentLayout.lines.endIndex - 1,
           layout: position.indexPath.layout
         ),
         affinity: .upstream
@@ -272,10 +274,12 @@
 
       // if we are already at the end, move to the next block
       if position == end, position.indexPath.layout + 1 < layouts.endIndex {
-        let layout = layouts[position.indexPath.layout + 1]
+        guard let nextLayout = layout(at: position.indexPath.layout + 1) else {
+          return nil
+        }
 
         guard
-          let line = layout.lines.last,
+          let line = nextLayout.lines.last,
           let run = line.runs.last
         else {
           return nil
@@ -285,7 +289,7 @@
           indexPath: .init(
             runSlice: run.slices.endIndex - 1,
             run: line.runs.endIndex - 1,
-            line: layout.lines.endIndex - 1,
+            line: nextLayout.lines.endIndex - 1,
             layout: position.indexPath.layout + 1
           ),
           affinity: .upstream

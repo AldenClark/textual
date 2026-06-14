@@ -1,6 +1,12 @@
 #if TEXTUAL_ENABLE_TEXT_SELECTION
   import SwiftUI
 
+  extension Collection {
+    subscript(safe index: Index) -> Element? {
+      indices.contains(index) ? self[index] : nil
+    }
+  }
+
   protocol TextLayoutCollection {
     var layouts: [any TextLayout] { get }
 
@@ -70,6 +76,24 @@
   protocol TextRunSlice {
     var typographicBounds: CGRect { get }
     var characterRange: Range<Int> { get }
+  }
+
+  extension TextLayoutCollection {
+    func layout(at index: Int) -> (any TextLayout)? {
+      layouts[safe: index]
+    }
+
+    func line(at indexPath: IndexPath) -> (any TextLine)? {
+      layout(at: indexPath.layout)?.lines[safe: indexPath.line]
+    }
+
+    func run(at indexPath: IndexPath) -> (any TextRun)? {
+      line(at: indexPath)?.runs[safe: indexPath.run]
+    }
+
+    func runSlice(at indexPath: IndexPath) -> (any TextRunSlice)? {
+      run(at: indexPath)?.slices[safe: indexPath.runSlice]
+    }
   }
 
 #endif

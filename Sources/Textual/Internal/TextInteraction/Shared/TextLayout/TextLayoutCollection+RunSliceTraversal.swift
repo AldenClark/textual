@@ -13,9 +13,13 @@
 
   extension TextLayoutCollection {
     fileprivate func indexPathForRunSlice(after indexPath: IndexPath) -> IndexPath? {
-      let layout = layouts[indexPath.layout]
-      let line = layout.lines[indexPath.line]
-      let run = line.runs[indexPath.run]
+      guard
+        let layout = layout(at: indexPath.layout),
+        let line = layout.lines[safe: indexPath.line],
+        let run = line.runs[safe: indexPath.run]
+      else {
+        return nil
+      }
 
       if indexPath.runSlice + 1 < run.slices.count {
         return IndexPath(
@@ -59,7 +63,12 @@
       }
 
       if indexPath.run > 0 {
-        let previousRun = layouts[indexPath.layout].lines[indexPath.line].runs[indexPath.run - 1]
+        guard
+          let line = line(at: indexPath),
+          let previousRun = line.runs[safe: indexPath.run - 1]
+        else {
+          return nil
+        }
         return IndexPath(
           runSlice: previousRun.slices.endIndex - 1,
           run: indexPath.run - 1,
@@ -69,9 +78,16 @@
       }
 
       if indexPath.line > 0 {
-        let previousLine = layouts[indexPath.layout].lines[indexPath.line - 1]
+        guard
+          let layout = layout(at: indexPath.layout),
+          let previousLine = layout.lines[safe: indexPath.line - 1]
+        else {
+          return nil
+        }
         let lastRunIndex = previousLine.runs.endIndex - 1
-        let lastRun = previousLine.runs[lastRunIndex]
+        guard let lastRun = previousLine.runs[safe: lastRunIndex] else {
+          return nil
+        }
 
         return IndexPath(
           runSlice: lastRun.slices.endIndex - 1,
@@ -82,11 +98,17 @@
       }
 
       if indexPath.layout > 0 {
-        let previousLayout = layouts[indexPath.layout - 1]
+        guard let previousLayout = layout(at: indexPath.layout - 1) else {
+          return nil
+        }
         let lastLineIndex = previousLayout.lines.endIndex - 1
-        let lastLine = previousLayout.lines[lastLineIndex]
+        guard let lastLine = previousLayout.lines[safe: lastLineIndex] else {
+          return nil
+        }
         let lastRunIndex = lastLine.runs.endIndex - 1
-        let lastRun = lastLine.runs[lastRunIndex]
+        guard let lastRun = lastLine.runs[safe: lastRunIndex] else {
+          return nil
+        }
         return IndexPath(
           runSlice: lastRun.slices.endIndex - 1,
           run: lastRunIndex,

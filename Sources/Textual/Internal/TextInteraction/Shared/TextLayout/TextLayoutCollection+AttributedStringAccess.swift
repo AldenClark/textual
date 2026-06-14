@@ -12,16 +12,22 @@
       let attributedText = NSMutableAttributedString()
       let start = range.start.indexPath.layout
       let end = range.end.indexPath.layout
+      guard start <= end else {
+        return attributedText
+      }
 
-      for layout in start...end {
-        let attributedString = layouts[layout].attributedString
+      for layoutIndex in start...end {
+        guard let textLayout = layout(at: layoutIndex) else {
+          continue
+        }
+        let attributedString = textLayout.attributedString
 
         let lowerBound =
-          (layout == start)
+          (layoutIndex == start)
           ? localCharacterIndex(at: range.start)
           : 0
         let upperBound =
-          (layout == end)
+          (layoutIndex == end)
           ? localCharacterIndex(at: range.end)
           : attributedString.length
 

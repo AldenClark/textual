@@ -54,7 +54,7 @@
       guard !layouts.isEmpty else { return nil }
 
       let layoutIndex = layoutIndex(closestTo: point)
-      let layout = layouts[layoutIndex]
+      guard let layout = layout(at: layoutIndex) else { return nil }
 
       guard !layout.lines.isEmpty else { return nil }
 
@@ -64,13 +64,13 @@
       )
 
       let lineIndex = layout.lineIndex(closestToY: localPoint.y)
-      let line = layout.lines[lineIndex]
+      guard let line = layout.lines[safe: lineIndex] else { return nil }
       let runIndex = line.runIndex(closestToX: localPoint.x)
-      let run = line.runs[runIndex]
+      guard let run = line.runs[safe: runIndex] else { return nil }
       let direction = run.layoutDirection
 
       let runSliceIndex = run.sliceIndex(closestToX: localPoint.x)
-      let runSlice = run.slices[runSliceIndex]
+      guard let runSlice = run.slices[safe: runSliceIndex] else { return nil }
 
       let leadingDistance = abs(
         localPoint.x - runSlice.typographicBounds.leadingEdgeX(for: direction)
@@ -94,7 +94,7 @@
       guard !layouts.isEmpty else { return nil }
 
       let layoutIndex = layoutIndex(closestTo: point)
-      let layout = layouts[layoutIndex]
+      guard let layout = layout(at: layoutIndex) else { return nil }
 
       guard !layout.lines.isEmpty else { return nil }
 
@@ -104,10 +104,11 @@
       )
 
       let lineIndex = layout.lineIndex(closestToY: localPoint.y)
-      let line = layout.lines[lineIndex]
+      guard let line = layout.lines[safe: lineIndex] else { return nil }
       let runIndex = line.runIndex(closestToX: localPoint.x)
-      let run = line.runs[runIndex]
+      guard let run = line.runs[safe: runIndex] else { return nil }
       let runSliceIndex = run.sliceIndex(closestToX: localPoint.x)
+      guard run.slices[safe: runSliceIndex] != nil else { return nil }
 
       let start = TextPosition(
         indexPath: .init(
@@ -124,6 +125,10 @@
     }
 
     func isPositionAtBlockBoundary(_ position: TextPosition) -> Bool {
+      guard let layout = layout(at: position.indexPath.layout) else {
+        return false
+      }
+
       if position
         == TextPosition(
           indexPath: .init(layout: position.indexPath.layout),
@@ -132,8 +137,6 @@
       {
         return true
       }
-
-      let layout = layouts[position.indexPath.layout]
 
       guard
         let line = layout.lines.last,
@@ -171,7 +174,9 @@
       }
 
       if position.indexPath.layout > 0 {
-        let previousLayout = layouts[position.indexPath.layout - 1]
+        guard let previousLayout = layout(at: position.indexPath.layout - 1) else {
+          return nil
+        }
         let lastLineIndex = previousLayout.lines.endIndex - 1
         return closestPosition(
           to: anchorX,
@@ -185,7 +190,9 @@
 
     func positionBelow(_ position: TextPosition, anchor: TextPosition) -> TextPosition? {
       let anchorX = runSliceRect(at: anchor.indexPath).midX
-      let layout = layouts[position.indexPath.layout]
+      guard let layout = layout(at: position.indexPath.layout) else {
+        return nil
+      }
 
       if position.indexPath.line + 1 < layout.lines.endIndex {
         return closestPosition(
@@ -207,9 +214,13 @@
     }
 
     func runSliceSelectionRect(at indexPath: IndexPath) -> CGRect {
-      let layout = layouts[indexPath.layout]
-      let line = layout.lines[indexPath.line]
-      let runSlice = line.runs[indexPath.run].slices[indexPath.runSlice]
+      guard
+        let layout = layout(at: indexPath.layout),
+        let line = line(at: indexPath),
+        let runSlice = runSlice(at: indexPath)
+      else {
+        return .zero
+      }
 
       var rect = runSlice.typographicBounds
       rect.origin.y = line.typographicBounds.minY
@@ -225,14 +236,18 @@
       layoutIndex: Int,
       lineIndex: Int
     ) -> TextPosition? {
-      let layout = layouts[layoutIndex]
-      let line = layout.lines[lineIndex]
+      guard
+        let layout = layout(at: layoutIndex),
+        let line = layout.lines[safe: lineIndex]
+      else {
+        return nil
+      }
       let runIndex = line.runIndex(closestToX: x)
-      let run = line.runs[runIndex]
+      guard let run = line.runs[safe: runIndex] else { return nil }
       let direction = run.layoutDirection
 
       let runSliceIndex = run.sliceIndex(closestToX: x)
-      let runSlice = run.slices[runSliceIndex]
+      guard let runSlice = run.slices[safe: runSliceIndex] else { return nil }
 
       let leadingDistance = abs(
         x - runSlice.typographicBounds.leadingEdgeX(for: direction)
@@ -253,14 +268,22 @@
     }
 
     fileprivate func runSliceRect(at indexPath: IndexPath) -> CGRect {
-      let layout = layouts[indexPath.layout]
-      let runSlice = layout.lines[indexPath.line].runs[indexPath.run].slices[indexPath.runSlice]
+      guard
+        let layout = layout(at: indexPath.layout),
+        let runSlice = runSlice(at: indexPath)
+      else {
+        return .zero
+      }
       return runSlice.typographicBounds.offsetBy(dx: layout.origin.x, dy: layout.origin.y)
     }
 
     fileprivate func lineRect(at indexPath: IndexPath) -> CGRect {
-      let layout = layouts[indexPath.layout]
-      let line = layout.lines[indexPath.line]
+      guard
+        let layout = layout(at: indexPath.layout),
+        let line = line(at: indexPath)
+      else {
+        return .zero
+      }
       return line.typographicBounds.offsetBy(dx: layout.origin.x, dy: layout.origin.y)
     }
 
